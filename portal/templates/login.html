@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk · SMARTMU 22</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body>
+  <main class="login-halaman">
+    <form class="login-kartu" method="post" action="{{ url_for('masuk') }}">
+      <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+      <h1>SMARTMU 22</h1>
+      <p class="sekolah">SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for jenis, pesan in messages %}
+        <div class="flash {{ jenis }}">{{ pesan }}</div>
+        {% endfor %}
+      {% endwith %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required>
+      <label for="password">Kata sandi</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button type="submit">Masuk</button>
+      <p class="catatan">Akun awal: <b>admin</b> / <b>admin123</b>. Ganti setelah dipakai. Satu akun ini membuka Presensi, eRapor, Tahfidz, dan Rapor BK.</p>
+    </form>
+  </main>
+</body>
+</html>

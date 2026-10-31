@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SMARTMU 22</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body>
+  <div class="bungkus">
+    <header class="puncak">
+      <div class="identitas">
+        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+        <div>
+          <h1>SMARTMU 22</h1>
+          <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+        </div>
+      </div>
+      <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+    </header>
+    <p class="sapa">Selamat datang, <strong>{{ session.nama }}</strong>. Pilih portal yang akan dibuka.</p>
+    <section class="kisi">
+      {% for modul in modul_list %}
+      <a class="kartu" href="{{ modul.href }}">
+        <span style="background: {{ modul.warna }}"></span>
+        <h2>{{ modul.nama }}</h2>
+        <p>{{ modul.ringkas }}</p>
+      </a>
+      {% endfor %}
+    </section>
+  </div>
+</body>
+</html>

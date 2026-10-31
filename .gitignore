@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+_sources/
+modules/tahfidz/uploads/
+modules/tahfidz/blanko/

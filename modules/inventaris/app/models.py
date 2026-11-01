@@ -251,22 +251,42 @@ def delete_barang(barang_id):
 
 
 # --- Peminjaman ---
-def list_peminjaman(status=None):
+def list_peminjaman(status=None, dari=None, sampai=None, peminjaman_id=None, kolom_tanggal="tanggal_pinjam"):
     conn = get_connection()
     sql = """
-        SELECT p.*, b.nama AS barang_nama, b.kode AS barang_kode
+        SELECT p.*, b.nama AS barang_nama, b.kode AS barang_kode,
+               b.kondisi AS barang_kondisi, b.satuan AS barang_satuan,
+               b.tahun_perolehan AS barang_tahun, b.sumber AS barang_sumber,
+               l.nama AS lokasi_nama
         FROM peminjaman p
         JOIN barang b ON b.id = p.barang_id
+        LEFT JOIN lokasi l ON l.id = b.lokasi_id
         WHERE 1=1
     """
     params = []
     if status:
         sql += " AND p.status = %s"
         params.append(status)
+    if kolom_tanggal not in {"tanggal_pinjam", "tanggal_kembali_aktual"}:
+        kolom_tanggal = "tanggal_pinjam"
+    if dari:
+        sql += f" AND p.{kolom_tanggal} >= %s"
+        params.append(dari)
+    if sampai:
+        sql += f" AND p.{kolom_tanggal} <= %s"
+        params.append(sampai)
+    if peminjaman_id:
+        sql += " AND p.id = %s"
+        params.append(peminjaman_id)
     sql += " ORDER BY p.id DESC"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def get_peminjaman(peminjaman_id):
+    rows = list_peminjaman(peminjaman_id=peminjaman_id)
+    return rows[0] if rows else None
 
 
 def create_peminjaman(data, petugas=""):
@@ -278,7 +298,7 @@ def create_peminjaman(data, petugas=""):
         raise ValueError("Stok tersedia tidak mencukupi.")
     now = datetime.now().strftime("%Y-%m-%d")
     with db_session() as conn:
-        conn.execute(
+        cur = conn.execute(
             """
             INSERT INTO peminjaman (
                 barang_id, peminjam, kelas_unit, jumlah, tanggal_pinjam,
@@ -296,13 +316,15 @@ def create_peminjaman(data, petugas=""):
                 data.get("keterangan") or "",
             ),
         )
+        pinjam_id = cur.lastrowid
         conn.execute(
             "UPDATE barang SET jumlah_tersedia = jumlah_tersedia - %s WHERE id = %s",
             (jumlah, data["barang_id"]),
         )
+        return pinjam_id
 
 
-def kembalikan_peminjaman(peminjaman_id):
+def kembalikan_peminjaman(peminjaman_id, petugas=""):
     conn = get_connection()
     row = conn.execute(
         "SELECT * FROM peminjaman WHERE id = %s", (peminjaman_id,)
@@ -317,10 +339,11 @@ def kembalikan_peminjaman(peminjaman_id):
         conn.execute(
             """
             UPDATE peminjaman
-            SET status = 'Dikembalikan', tanggal_kembali_aktual = %s
+            SET status = 'Dikembalikan', tanggal_kembali_aktual = %s,
+                petugas_kembali = %s
             WHERE id = %s
             """,
-            (now, peminjaman_id),
+            (now, petugas or None, peminjaman_id),
         )
         conn.execute(
             "UPDATE barang SET jumlah_tersedia = jumlah_tersedia + %s WHERE id = %s",

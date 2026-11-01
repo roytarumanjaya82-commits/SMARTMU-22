@@ -132,6 +132,7 @@
             <th>Jumlah</th>
             <th>Tersedia</th>
             <th>Kondisi</th>
+            <th>Tahun</th>
             <th>Sumber</th>
           </tr>
         </thead>
@@ -146,11 +147,12 @@
             <td>{{ b.jumlah }} {{ b.satuan }}</td>
             <td>{{ b.jumlah_tersedia }}</td>
             <td>{{ b.kondisi }}</td>
+            <td>{{ b.tahun_perolehan or '-' }}</td>
             <td>{{ b.sumber or '-' }}</td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="9" class="empty">Belum ada data barang inventaris.</td>
+            <td colspan="10" class="empty">Belum ada data barang inventaris.</td>
           </tr>
           {% endfor %}
         </tbody>

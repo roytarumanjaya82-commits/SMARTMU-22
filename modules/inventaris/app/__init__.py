@@ -90,6 +90,7 @@ def create_app():
     from app.routes.main import main_bp
     from app.routes.barang import barang_bp
     from app.routes.peminjaman import peminjaman_bp
+    from app.routes.pengembalian import pengembalian_bp
     from app.routes.sync import sync_bp
     from app.routes.laporan import laporan_bp
     from app.routes.users import users_bp
@@ -98,6 +99,7 @@ def create_app():
     app.register_blueprint(main_bp)
     app.register_blueprint(barang_bp)
     app.register_blueprint(peminjaman_bp)
+    app.register_blueprint(pengembalian_bp)
     app.register_blueprint(sync_bp)
     app.register_blueprint(laporan_bp)
     app.register_blueprint(users_bp)

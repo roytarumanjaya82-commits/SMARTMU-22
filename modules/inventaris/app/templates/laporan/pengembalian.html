@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Pengembalian · {{ school.nama }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/laporan.css') }}">
+</head>
+<body class="{% if print_mode %}print-mode{% endif %}">
+  <div class="toolbar no-print">
+    <a class="btn ghost" href="{{ url_for('laporan.index') }}">← Kembali</a>
+    <a class="btn ghost" href="{{ url_for('pengembalian.index') }}">Menu Pengembalian</a>
+    <form class="filters" method="get">
+      <input type="date" name="dari" value="{{ dari }}" aria-label="Dari tanggal kembali">
+      <input type="date" name="sampai" value="{{ sampai }}" aria-label="Sampai tanggal kembali">
+      <button class="btn" type="submit">Terapkan</button>
+    </form>
+    <button class="btn primary" type="button" onclick="window.print()">Cetak / PDF</button>
+  </div>
+
+  <article class="sheet">
+    <header class="kop">
+      <img class="kop-logo" src="{{ url_for('static', filename='img/logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+      <div class="kop-text">
+        <div class="org">MAJELIS PENDIDIKAN DASAR DAN MENENGAH</div>
+        <div class="org">PIMPINAN CABANG MUHAMMADIYAH PAMULANG</div>
+        <h1>{{ school.nama }}</h1>
+        <p class="alamat">{{ school.alamat }}</p>
+        <p class="meta-line">
+          NPSN: {{ school.npsn }}
+          {% if school.website %} · Website: {{ school.website }}{% endif %}
+        </p>
+      </div>
+    </header>
+    <div class="kop-line"></div>
+    <div class="kop-line thin"></div>
+
+    <section class="judul">
+      <h2>LAPORAN PENGEMBALIAN BARANG</h2>
+      <p>Disusun dari catatan peminjaman yang statusnya sudah dikembalikan</p>
+    </section>
+
+    <section class="info-grid">
+      <div>
+        <span>Tanggal Cetak</span>
+        <strong>{{ tanggal_cetak }}</strong>
+      </div>
+      <div>
+        <span>Periode Kembali</span>
+        <strong>{% if dari or sampai %}{{ fmt(dari) if dari else '...' }} – {{ fmt(sampai) if sampai else '...' }}{% else %}Semua tanggal{% endif %}</strong>
+      </div>
+      <div>
+        <span>Dicetak Oleh</span>
+        <strong>{{ petugas }}</strong>
+      </div>
+      <div>
+        <span>Sumber Data</span>
+        <strong>Peminjaman</strong>
+      </div>
+    </section>
+
+    <section class="stat-row">
+      <div class="stat">
+        <div class="label">Pengembalian</div>
+        <div class="value">{{ stats.transaksi }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Unit Kembali</div>
+        <div class="value">{{ stats.unit }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Tepat Waktu</div>
+        <div class="value">{{ stats.tepat }}</div>
+      </div>
+      <div class="stat">
+        <div class="label">Terlambat</div>
+        <div class="value">{{ stats.telat }}</div>
+      </div>
+    </section>
+
+    <section>
+      <h3>Daftar Pengembalian</h3>
+      <table class="data">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Tgl Pinjam</th>
+            <th>Tgl Kembali</th>
+            <th>Peminjam</th>
+            <th>Barang</th>
+            <th>Tahun</th>
+            <th>Jumlah</th>
+            <th>Ketepatan</th>
+            <th class="no-print">Bukti</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ fmt(p.tanggal_pinjam) }}</td>
+            <td>{{ fmt(p.tanggal_kembali_aktual) }}</td>
+            <td>
+              {{ p.peminjam }}
+              {% if p.kelas_unit %}<br>{{ p.kelas_unit }}{% endif %}
+            </td>
+            <td>{{ p.barang_kode }} · {{ p.barang_nama }}</td>
+            <td>{{ p.barang_tahun or '-' }}</td>
+            <td>{{ p.jumlah }} {{ p.barang_satuan or 'unit' }}</td>
+            <td>{% if terlambat(p) %}Terlambat{% else %}Tepat waktu{% endif %}</td>
+            <td class="no-print">
+              <a href="{{ url_for('laporan.tanda_terima_kembali', peminjaman_id=p.id) }}">Tanda Terima</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9" class="empty">Belum ada barang yang dikembalikan pada periode ini.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="penutup">
+      <p>
+        Demikian laporan pengembalian barang ini dibuat dengan sebenar-benarnya untuk digunakan
+        sebagaimana mestinya.
+      </p>
+      <div class="ttd">
+        <div class="ttd-box">
+          <p>{{ school.kota }}, {{ tanggal_cetak }}</p>
+          <p>Mengetahui,</p>
+          <p><strong>Kepala Sekolah</strong></p>
+          <div class="space"></div>
+          <p class="nama">{{ school.kepala }}</p>
+          <p class="nbm">NBM/NIP. {{ school.nbm_kepala }}</p>
+        </div>
+        <div class="ttd-box">
+          <p>&nbsp;</p>
+          <p>Petugas Inventaris,</p>
+          <p><strong>&nbsp;</strong></p>
+          <div class="space"></div>
+          <p class="nama">{{ petugas }}</p>
+          <p class="nbm">Sistem Inventaris SMPM 22</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer-note">
+      Dicetak otomatis dari Sistem Inventaris {{ school.nama }} · {{ waktu_cetak }}
+    </footer>
+  </article>
+
+  {% if print_mode %}
+  <script>window.addEventListener('load', function () { window.print(); });</script>
+  {% endif %}
+</body>
+</html>

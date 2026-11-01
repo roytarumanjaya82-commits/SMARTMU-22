@@ -4,12 +4,26 @@
 {% block page_sub %}Cetak laporan resmi dengan kop surat sekolah{% endblock %}
 
 {% block content %}
-<div class="cards" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+<div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
   <div class="panel" style="margin:0;">
     <div class="panel-header"><h3>Laporan Barang (Kop Surat)</h3></div>
     <p class="muted">Laporan inventaris resmi berlogo SMP Muhammadiyah 22 Setiabudi Pamulang, siap dicetak/PDF.</p>
     <div class="btn-group">
       <a class="btn btn-primary" href="{{ url_for('laporan.barang') }}">Buka Laporan Barang</a>
+    </div>
+  </div>
+  <div class="panel" style="margin:0;">
+    <div class="panel-header"><h3>Laporan Peminjaman</h3></div>
+    <p class="muted">Rekap barang yang dipinjam dan dikembalikan, lengkap dengan tanda terima per transaksi.</p>
+    <div class="btn-group">
+      <a class="btn btn-primary" href="{{ url_for('laporan.peminjaman') }}">Buka Laporan Peminjaman</a>
+    </div>
+  </div>
+  <div class="panel" style="margin:0;">
+    <div class="panel-header"><h3>Laporan Pengembalian</h3></div>
+    <p class="muted">Rekap barang yang sudah dikembalikan. Datanya diambil dari catatan peminjaman.</p>
+    <div class="btn-group">
+      <a class="btn btn-primary" href="{{ url_for('laporan.pengembalian') }}">Buka Laporan Pengembalian</a>
     </div>
   </div>
   <div class="panel" style="margin:0;">

@@ -30,9 +30,9 @@ def tambah():
         try:
             if not data["barang_id"] or not data["peminjam"]:
                 raise ValueError("Barang dan nama peminjam wajib diisi.")
-            models.create_peminjaman(data, petugas=current_user.nama_lengkap)
-            flash("Peminjaman berhasil dicatat.", "success")
-            return redirect(url_for("peminjaman.index"))
+            pinjam_id = models.create_peminjaman(data, petugas=current_user.nama_lengkap)
+            flash("Peminjaman berhasil dicatat. Tanda terima siap dicetak.", "success")
+            return redirect(url_for("laporan.tanda_terima", peminjaman_id=pinjam_id))
         except Exception as exc:
             flash(str(exc), "danger")
 
@@ -46,8 +46,11 @@ def tambah():
 @login_required
 def kembalikan(peminjaman_id):
     try:
-        models.kembalikan_peminjaman(peminjaman_id)
+        models.kembalikan_peminjaman(peminjaman_id, petugas=current_user.nama_lengkap)
         flash("Barang berhasil dikembalikan.", "success")
+        return redirect(url_for("laporan.tanda_terima_kembali", peminjaman_id=peminjaman_id))
     except Exception as exc:
         flash(str(exc), "danger")
+    if request.form.get("next") == "pengembalian":
+        return redirect(url_for("pengembalian.index"))
     return redirect(url_for("peminjaman.index"))

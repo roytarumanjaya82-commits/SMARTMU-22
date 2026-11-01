@@ -22,6 +22,7 @@
         <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">Dashboard</a>
         <a href="{{ url_for('barang.index') }}" class="{% if request.endpoint and request.endpoint.startswith('barang.') and request.endpoint not in ['barang.kategori','barang.lokasi'] %}active{% endif %}">Data Barang</a>
         <a href="{{ url_for('peminjaman.index') }}" class="{% if request.endpoint and request.endpoint.startswith('peminjaman.') %}active{% endif %}">Peminjaman</a>
+        <a href="{{ url_for('pengembalian.index') }}" class="{% if request.endpoint and request.endpoint.startswith('pengembalian.') %}active{% endif %}">Pengembalian</a>
         <a href="{{ url_for('laporan.index') }}" class="{% if request.endpoint and request.endpoint.startswith('laporan.') %}active{% endif %}">Laporan</a>
 
         <div class="section-label">Master Data</div>

@@ -162,6 +162,7 @@ SCHEMA_STATEMENTS = [
         tanggal_kembali_aktual VARCHAR(20) NULL,
         status VARCHAR(30) NOT NULL DEFAULT 'Dipinjam',
         petugas VARCHAR(150) NULL,
+        petugas_kembali VARCHAR(150) NULL,
         keterangan TEXT NULL,
         CONSTRAINT fk_peminjaman_barang
             FOREIGN KEY (barang_id) REFERENCES barang(id) ON DELETE CASCADE
@@ -190,6 +191,19 @@ def init_db():
     with db_session() as conn:
         for stmt in SCHEMA_STATEMENTS:
             conn.execute(stmt)
+
+        kolom = conn.execute(
+            """
+            SELECT COUNT(*) AS n FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = 'peminjaman'
+              AND column_name = 'petugas_kembali'
+            """
+        ).fetchone()
+        if not kolom["n"]:
+            conn.execute(
+                "ALTER TABLE peminjaman ADD COLUMN petugas_kembali VARCHAR(150) NULL AFTER petugas"
+            )
 
         admin = conn.execute(
             "SELECT id FROM users WHERE username = %s", ("admin",)

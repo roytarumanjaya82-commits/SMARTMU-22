@@ -43,8 +43,14 @@ def _muat_tahfidz():
 
 
 def _muat_presensi():
-    modul = _muat_berkas("presensi_app", ROOT / "modules" / "presensi" / "app.py")
-    return modul.app
+    folder = str(ROOT / "modules" / "presensi")
+    sys.path.insert(0, folder)
+    try:
+        modul = _muat_berkas("presensi_app", ROOT / "modules" / "presensi" / "app.py")
+        return modul.app
+    finally:
+        while folder in sys.path:
+            sys.path.remove(folder)
 
 
 def _muat_bk():

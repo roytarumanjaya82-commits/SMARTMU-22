@@ -57,6 +57,7 @@
           <th>Lokasi</th>
           <th>Stok</th>
           <th>Kondisi</th>
+          <th>Tahun</th>
           <th>Aksi</th>
         </tr>
       </thead>
@@ -77,6 +78,7 @@
               <span class="badge badge-warn">{{ b.kondisi }}</span>
             {% endif %}
           </td>
+          <td>{{ b.tahun_perolehan or '-' }}</td>
           <td>
             <div class="btn-group">
               <a class="btn btn-secondary btn-sm" href="{{ url_for('barang.edit', barang_id=b.id) }}">Edit</a>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tanda Terima {{ nomor }} · {{ school.nama }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/laporan.css') }}">
+</head>
+<body class="{% if print_mode %}print-mode{% endif %}">
+  <div class="toolbar no-print">
+    <a class="btn ghost" href="{{ url_for('laporan.peminjaman') }}">← Laporan Peminjaman</a>
+    <a class="btn ghost" href="{{ url_for('peminjaman.index') }}">Daftar Peminjaman</a>
+    <button class="btn primary" type="button" onclick="window.print()">Cetak / PDF</button>
+  </div>
+
+  <article class="sheet nota">
+    <header class="kop">
+      <img class="kop-logo" src="{{ url_for('static', filename='img/logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+      <div class="kop-text">
+        <div class="org">MAJELIS PENDIDIKAN DASAR DAN MENENGAH</div>
+        <div class="org">PIMPINAN CABANG MUHAMMADIYAH PAMULANG</div>
+        <h1>{{ school.nama }}</h1>
+        <p class="alamat">{{ school.alamat }}</p>
+        <p class="meta-line">
+          NPSN: {{ school.npsn }}
+          {% if school.website %} · Website: {{ school.website }}{% endif %}
+        </p>
+      </div>
+    </header>
+    <div class="kop-line"></div>
+    <div class="kop-line thin"></div>
+
+    <section class="judul">
+      <h2>TANDA TERIMA PEMINJAMAN BARANG</h2>
+      <p class="nomor">Nomor: {{ nomor }}</p>
+    </section>
+
+    <p class="pernyataan">
+      Telah diterima dari petugas inventaris {{ school.nama }} barang berikut
+      untuk dipergunakan sebagaimana mestinya, dan akan dikembalikan dalam keadaan baik
+      pada tanggal yang disepakati.
+    </p>
+
+    <table class="rincian">
+      <tbody>
+        <tr><th>Peminjam</th><td>{{ item.peminjam }}</td></tr>
+        <tr><th>Kelas / Unit</th><td>{{ item.kelas_unit or '-' }}</td></tr>
+        <tr><th>Kode Barang</th><td>{{ item.barang_kode }}</td></tr>
+        <tr><th>Nama Barang</th><td>{{ item.barang_nama }}</td></tr>
+        <tr><th>Tahun Perolehan</th><td>{{ item.barang_tahun or '-' }}</td></tr>
+        <tr><th>Lokasi Asal</th><td>{{ item.lokasi_nama or '-' }}</td></tr>
+        <tr><th>Kondisi Saat Dipinjam</th><td>{{ item.barang_kondisi or '-' }}</td></tr>
+        <tr><th>Jumlah</th><td>{{ item.jumlah }} {{ item.barang_satuan or 'unit' }}</td></tr>
+        <tr><th>Tanggal Pinjam</th><td>{{ fmt(item.tanggal_pinjam) }}</td></tr>
+        <tr><th>Rencana Kembali</th><td>{{ fmt(item.tanggal_kembali_rencana) }}</td></tr>
+        <tr><th>Status</th><td>{{ item.status }}{% if item.tanggal_kembali_aktual %} · kembali {{ fmt(item.tanggal_kembali_aktual) }}{% endif %}</td></tr>
+        {% if item.keterangan %}
+        <tr><th>Keterangan</th><td>{{ item.keterangan }}</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <section class="penutup">
+      <p>Tanda terima ini dibuat dalam dua rangkap: untuk peminjam dan untuk arsip inventaris.</p>
+      <div class="ttd">
+        <div class="ttd-box">
+          <p>{{ school.kota }}, {{ fmt(item.tanggal_pinjam) }}</p>
+          <p>Peminjam,</p>
+          <p><strong>&nbsp;</strong></p>
+          <div class="space"></div>
+          <p class="nama">{{ item.peminjam }}</p>
+          <p class="nbm">{{ item.kelas_unit or 'Peminjam' }}</p>
+        </div>
+        <div class="ttd-box">
+          <p>&nbsp;</p>
+          <p>Petugas Inventaris,</p>
+          <p><strong>&nbsp;</strong></p>
+          <div class="space"></div>
+          <p class="nama">{{ item.petugas or petugas }}</p>
+          <p class="nbm">{{ school.nama }}</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer-note">
+      Dicetak otomatis dari Sistem Inventaris {{ school.nama }} · {{ waktu_cetak }}
+    </footer>
+  </article>
+
+  {% if print_mode %}
+  <script>window.addEventListener('load', function () { window.print(); });</script>
+  {% endif %}
+</body>
+</html>

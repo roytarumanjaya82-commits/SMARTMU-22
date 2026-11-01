@@ -1,7 +1,7 @@
 from datetime import datetime
 from io import BytesIO
 
-from flask import Blueprint, render_template, request, send_file
+from flask import Blueprint, abort, render_template, request, send_file
 from flask_login import login_required, current_user
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -18,6 +18,26 @@ from config import (
 )
 
 laporan_bp = Blueprint("laporan", __name__, url_prefix="/laporan")
+
+BULAN = [
+    "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+]
+
+
+def _fmt_tanggal(nilai):
+    if not nilai:
+        return "-"
+    try:
+        saat = datetime.strptime(str(nilai)[:10], "%Y-%m-%d")
+    except ValueError:
+        return str(nilai)
+    return f"{saat.day} {BULAN[saat.month]} {saat.year}"
+
+
+def _tanggal_cetak(saat=None):
+    saat = saat or datetime.now()
+    return f"{saat.day} {BULAN[saat.month]} {saat.year}"
 
 
 def _school_meta():
@@ -75,11 +95,7 @@ def barang():
     )
     stats = _report_stats(items)
     now = datetime.now()
-    bulan = [
-        "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-        "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-    ]
-    tanggal_cetak = f"{now.day} {bulan[now.month]} {now.year}"
+    tanggal_cetak = _tanggal_cetak(now)
 
     return render_template(
         "laporan/barang.html",
@@ -93,6 +109,123 @@ def barang():
         kategori_id=kategori_id,
         kondisi=kondisi,
         kategori_list=models.list_kategori(),
+        print_mode=request.args.get("print") == "1",
+    )
+
+
+@laporan_bp.route("/peminjaman")
+@login_required
+def peminjaman():
+    status = request.args.get("status") or None
+    dari = (request.args.get("dari") or "").strip() or None
+    sampai = (request.args.get("sampai") or "").strip() or None
+    items = models.list_peminjaman(status=status, dari=dari, sampai=sampai)
+    masih = sum(1 for p in items if p.get("status") == "Dipinjam")
+    kembali = sum(1 for p in items if p.get("status") == "Dikembalikan")
+    unit = sum(int(p.get("jumlah") or 0) for p in items)
+    now = datetime.now()
+    return render_template(
+        "laporan/peminjaman.html",
+        items=items,
+        school=_school_meta(),
+        petugas=current_user.nama_lengkap,
+        tanggal_cetak=_tanggal_cetak(now),
+        waktu_cetak=now.strftime("%d/%m/%Y %H:%M"),
+        fmt=_fmt_tanggal,
+        status=status or "",
+        dari=dari or "",
+        sampai=sampai or "",
+        stats={
+            "transaksi": len(items),
+            "masih": masih,
+            "kembali": kembali,
+            "unit": unit,
+        },
+        print_mode=request.args.get("print") == "1",
+    )
+
+
+def _terlambat(item):
+    rencana = item.get("tanggal_kembali_rencana") or ""
+    aktual = item.get("tanggal_kembali_aktual") or ""
+    return bool(rencana and aktual and aktual > rencana)
+
+
+@laporan_bp.route("/pengembalian")
+@login_required
+def pengembalian():
+    dari = (request.args.get("dari") or "").strip() or None
+    sampai = (request.args.get("sampai") or "").strip() or None
+    items = models.list_peminjaman(
+        status="Dikembalikan",
+        dari=dari,
+        sampai=sampai,
+        kolom_tanggal="tanggal_kembali_aktual",
+    )
+    items.sort(key=lambda p: (p.get("tanggal_kembali_aktual") or "", p["id"]), reverse=True)
+    unit = sum(int(p.get("jumlah") or 0) for p in items)
+    telat = sum(1 for p in items if _terlambat(p))
+    now = datetime.now()
+    return render_template(
+        "laporan/pengembalian.html",
+        items=items,
+        school=_school_meta(),
+        petugas=current_user.nama_lengkap,
+        tanggal_cetak=_tanggal_cetak(now),
+        waktu_cetak=now.strftime("%d/%m/%Y %H:%M"),
+        fmt=_fmt_tanggal,
+        terlambat=_terlambat,
+        dari=dari or "",
+        sampai=sampai or "",
+        stats={
+            "transaksi": len(items),
+            "unit": unit,
+            "tepat": len(items) - telat,
+            "telat": telat,
+        },
+        print_mode=request.args.get("print") == "1",
+    )
+
+
+@laporan_bp.route("/pengembalian/<int:peminjaman_id>/tanda-terima")
+@login_required
+def tanda_terima_kembali(peminjaman_id):
+    item = models.get_peminjaman(peminjaman_id)
+    if not item or item.get("status") != "Dikembalikan":
+        abort(404)
+    now = datetime.now()
+    tahun = str(item.get("tanggal_kembali_aktual") or now.year)[:4]
+    return render_template(
+        "laporan/tanda_terima_kembali.html",
+        item=item,
+        school=_school_meta(),
+        petugas=current_user.nama_lengkap,
+        tanggal_cetak=_tanggal_cetak(now),
+        waktu_cetak=now.strftime("%d/%m/%Y %H:%M"),
+        fmt=_fmt_tanggal,
+        nomor=f"TTK-INV/{int(item['id']):04d}/{tahun}",
+        terlambat=_terlambat(item),
+        print_mode=request.args.get("print") == "1",
+    )
+
+
+@laporan_bp.route("/peminjaman/<int:peminjaman_id>/tanda-terima")
+@login_required
+def tanda_terima(peminjaman_id):
+    item = models.get_peminjaman(peminjaman_id)
+    if not item:
+        abort(404)
+    now = datetime.now()
+    tahun = str(item.get("tanggal_pinjam") or now.year)[:4]
+    return render_template(
+        "laporan/tanda_terima.html",
+        item=item,
+        school=_school_meta(),
+        petugas=current_user.nama_lengkap,
+        tanggal_cetak=_tanggal_cetak(now),
+        waktu_cetak=now.strftime("%d/%m/%Y %H:%M"),
+        fmt=_fmt_tanggal,
+        nomor=f"TT-INV/{int(item['id']):04d}/{tahun}",
         print_mode=request.args.get("print") == "1",
     )
 

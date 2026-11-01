@@ -18,7 +18,7 @@ MODUL = (
     {
         "href": "/presensi/",
         "nama": "Presensi",
-        "ringkas": "Presensi harian siswa untuk guru piket, plus rekap bulanan.",
+        "ringkas": "Presensi harian, laporan piket, hasil belajar, dan akun orang tua.",
         "warna": "#0f6e56",
     },
     {

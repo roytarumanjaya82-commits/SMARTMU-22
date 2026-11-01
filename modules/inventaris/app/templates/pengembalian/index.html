@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Pengembalian{% endblock %}
+{% block page_title %}Pengembalian Barang{% endblock %}
+{% block page_sub %}Barang yang masih dipinjam, dicatat dari data peminjaman{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <h3>Menunggu Dikembalikan</h3>
+    <a class="btn btn-secondary" href="{{ url_for('laporan.pengembalian') }}">Laporan Pengembalian</a>
+  </div>
+
+  <form class="filters" method="get">
+    <input type="text" name="q" value="{{ q }}" placeholder="Cari peminjam, kelas, atau barang...">
+    <button class="btn btn-secondary" type="submit">Cari</button>
+  </form>
+
+  <div class="table-wrap">
+    {% if items %}
+    <table>
+      <thead>
+        <tr>
+          <th>Barang</th>
+          <th>Peminjam</th>
+          <th>Kelas/Unit</th>
+          <th>Jumlah</th>
+          <th>Tgl Pinjam</th>
+          <th>Rencana Kembali</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in items %}
+        <tr>
+          <td>
+            <strong>{{ p.barang_kode }}</strong><br>
+            <span class="muted">{{ p.barang_nama }}</span>
+          </td>
+          <td>{{ p.peminjam }}</td>
+          <td>{{ p.kelas_unit or '-' }}</td>
+          <td>{{ p.jumlah }} {{ p.barang_satuan or 'unit' }}</td>
+          <td>{{ p.tanggal_pinjam }}</td>
+          <td>{{ p.tanggal_kembali_rencana or '-' }}</td>
+          <td>
+            <div class="btn-group">
+              <a class="btn btn-secondary btn-sm" href="{{ url_for('laporan.tanda_terima', peminjaman_id=p.id) }}">Tanda Terima</a>
+              <form method="post" action="{{ url_for('peminjaman.kembalikan', peminjaman_id=p.id) }}">
+                <input type="hidden" name="next" value="pengembalian">
+                <button class="btn btn-primary btn-sm" type="submit">Kembalikan</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">Tidak ada barang yang masih dipinjam.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

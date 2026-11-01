@@ -213,6 +213,23 @@ table.data tbody tr:nth-child(even) { background: #f8fbf9; }
 }
 .ttd-box .nbm { font-size: 0.82rem; color: var(--muted); }
 
+.sheet.nota { width: min(760px, calc(100% - 2rem)); }
+.nomor {
+  font-weight: 700;
+  color: var(--green);
+}
+.pernyataan {
+  margin: 0 0 1rem;
+  line-height: 1.55;
+}
+table.rincian th {
+  width: 36%;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.86rem;
+  background: #f4faf6;
+}
+
 .footer-note {
   margin-top: 1.5rem;
   padding-top: 0.75rem;

@@ -128,6 +128,13 @@ def siapkan_tahfidz():
     run()
 
 
+def siapkan_inventaris():
+    from muat_inventaris import muat
+
+    muat()
+    print("Database inventaris siap.")
+
+
 def siapkan_erapor(cur):
     if ada_tabel(cur, ERAPOR_DATABASE, "users"):
         print("Database eRapor sudah ada, tidak diisi ulang.")
@@ -155,6 +162,7 @@ def main():
     finally:
         conn.close()
     siapkan_tahfidz()
+    siapkan_inventaris()
     print("Selesai. Jalankan: python app.py")
     print("Buka http://127.0.0.1:5000  lalu masuk dengan admin / admin123")
 

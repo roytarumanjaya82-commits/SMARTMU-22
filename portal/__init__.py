@@ -39,6 +39,12 @@ MODUL = (
         "ringkas": "Rapor bimbingan konseling. Isinya tersimpan di MySQL.",
         "warna": "#9a7424",
     },
+    {
+        "href": "/inventaris/",
+        "nama": "Inventaris",
+        "ringkas": "Data barang, peminjaman, laporan, dan cadangan Google Drive.",
+        "warna": "#b45309",
+    },
 )
 
 

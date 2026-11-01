@@ -1,6 +1,6 @@
 # SMARTMU 22
 
-Satu aplikasi untuk empat portal SMP Muhammadiyah 22 Setiabudi Pamulang: Presensi, eRapor, Tahfidz, dan Rapor BK.
+Satu aplikasi untuk portal SMP Muhammadiyah 22 Setiabudi Pamulang: Presensi, eRapor, Tahfidz, Rapor BK, dan Inventaris.
 
 ## Menjalankan
 
@@ -22,4 +22,4 @@ Akun awal: `admin` / `admin123`
 
 ## Database
 
-Satu server MySQL. Data portal dan rapor BK ada di database `smartmu`. Presensi, eRapor, dan Tahfidz tetap punya database sendiri karena tabel `siswa`, `kelas`, dan `users` tidak sama bentuknya. Semuanya dibuat oleh `init_db.py`.
+Satu server MySQL. Data portal dan rapor BK ada di database `smartmu`. Presensi, eRapor, Tahfidz, dan Inventaris tetap punya database sendiri karena tabel `siswa`, `kelas`, dan `users` tidak sama bentuknya. Semuanya dibuat oleh `init_db.py`. Inventaris memakai database `inventaris_smpm22`.

@@ -1,4 +1,4 @@
-"""SMARTMU 22 — satu aplikasi untuk Presensi, eRapor, Tahfidz, dan Rapor BK."""
+"""SMARTMU 22 — satu aplikasi untuk Presensi, eRapor, Tahfidz, Rapor BK, dan Inventaris."""
 
 import importlib.util
 import sys
@@ -50,6 +50,12 @@ def _muat_presensi():
 def _muat_bk():
     modul = _muat_berkas("bk_web", ROOT / "modules" / "bk" / "web.py")
     return modul.create_app()
+
+
+def _muat_inventaris():
+    from muat_inventaris import muat
+
+    return muat()
 
 
 def _wajib_garis_miring(aplikasi):
@@ -116,6 +122,7 @@ _MENU = (
     ("/erapor/", "eRapor"),
     ("/tahfidz/", "Tahfidz"),
     ("/bk/", "Rapor BK"),
+    ("/inventaris/", "Inventaris"),
 )
 
 
@@ -188,6 +195,7 @@ def bangun():
                 "/erapor": _wajib_garis_miring(_muat_erapor()),
                 "/tahfidz": _wajib_garis_miring(_muat_tahfidz()),
                 "/bk": _wajib_garis_miring(_muat_bk()),
+                "/inventaris": _wajib_garis_miring(_muat_inventaris()),
             },
         )
     )

@@ -21,21 +21,32 @@ def create_app():
 
     @app.before_request
     def masuk_dari_portal():
-        if session.get("user_id"):
+        try:
+            from sso import baca, boleh_data
+            data = baca(request)
+        except Exception:
+            data = None
+        if data and not boleh_data(data, "erapor"):
+            if session.get("dari_portal"):
+                session.clear()
+            if request.endpoint not in {None, "static", "auth.login"}:
+                return redirect("/?akses=erapor")
+            return None
+        from sso import cegah_ubah
+        tertahan = cegah_ubah(request, {"auth.login"})
+        if tertahan is not None:
+            return tertahan
+        if session.get("user_id") or not data:
             return None
         if request.endpoint in {None, "static", "auth.login"}:
             return None
         try:
-            from sso import baca
-            data = baca(request)
-            if not data:
-                return None
             user = query(
                 "SELECT * FROM users WHERE username=%s",
                 (data["username"],),
                 one=True,
             )
-            if (not user or user.get("aktif") == 0) and data.get("role") == "admin":
+            if not user or user.get("aktif") == 0:
                 user = query(
                     "SELECT * FROM users WHERE role='admin' AND aktif=1 ORDER BY id LIMIT 1",
                     one=True,
@@ -47,6 +58,7 @@ def create_app():
             session["role"] = user["role"]
             session["username"] = user["username"]
             session["guru_id"] = user.get("guru_id")
+            session["dari_portal"] = True
         except Exception:
             return None
         return None

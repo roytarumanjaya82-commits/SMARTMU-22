@@ -39,21 +39,81 @@ os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(Config.BLANKO_FOLDER, exist_ok=True)
 
 
+_MENU_ORTU = {"dashboard", "laporan_index", "laporan_detail", "ganti_password", "logout", "static", "login"}
+
+
+def _isi_sesi_ortu(user):
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    session["nama"] = user["nama_lengkap"]
+    session["role"] = "orang_tua"
+    session["must_change_password"] = bool(user.get("must_change_password"))
+    session["dari_portal"] = True
+    ta = get_tahun_aktif()
+    if ta:
+        session["ta_id"] = ta["id"]
+
+
+def _jaga_menu_ortu():
+    if session.get("role") != "orang_tua":
+        return None
+    if (
+        session.get("must_change_password")
+        and not session.get("sudah_ingat_sandi")
+        and request.endpoint in {"dashboard", "laporan_index", "laporan_detail"}
+    ):
+        session["sudah_ingat_sandi"] = True
+        flash(
+            "Anda masih memakai password bawaan. Password dapat diganti lewat menu Ganti Password.",
+            "warning",
+        )
+    if request.endpoint in _MENU_ORTU or request.endpoint is None:
+        return None
+    return redirect(url_for("dashboard"))
+
+
 @app.before_request
 def masuk_dari_portal():
-    if session.get("user_id"):
+    try:
+        from sso import baca, boleh_data
+        data = baca(request)
+    except Exception:
+        data = None
+    if data and data.get("role") == "orang_tua":
+        user = query_one(
+            """SELECT * FROM users
+               WHERE LOWER(username)=LOWER(%s) AND role='orang_tua' AND aktif=1""",
+            (data.get("username"),),
+        )
+        if not user:
+            session.clear()
+            return redirect(url_for("login"))
+        _isi_sesi_ortu(user)
+        return _jaga_menu_ortu()
+    if data and not boleh_data(data, "tahfidz"):
+        if session.get("dari_portal"):
+            session.clear()
+        if request.endpoint not in {None, "static", "login"}:
+            return redirect("/?akses=tahfidz")
+        return None
+    from sso import cegah_ubah
+    tertahan = cegah_ubah(request, {"login", "ganti_password"})
+    if tertahan is not None:
+        return tertahan
+    if session.get("role") == "orang_tua":
+        return _jaga_menu_ortu()
+    if session.get("user_id") or not data:
         return None
     if request.endpoint in {None, "static", "login"}:
         return None
     try:
-        from sso import baca
-        data = baca(request)
-        if not data:
-            return None
         user = query_one(
             "SELECT * FROM users WHERE LOWER(username)=LOWER(%s) AND aktif=1",
             (data["username"],),
         )
+        if user and user["role"] == "orang_tua":
+            _isi_sesi_ortu(user)
+            return _jaga_menu_ortu()
         if not user and data.get("role") == "admin":
             user = query_one(
                 "SELECT * FROM users WHERE role='admin' AND aktif=1 ORDER BY id LIMIT 1"
@@ -65,6 +125,7 @@ def masuk_dari_portal():
         session["nama"] = user["nama_lengkap"]
         session["role"] = user["role"]
         session["must_change_password"] = bool(user.get("must_change_password"))
+        session["dari_portal"] = True
         ta = get_tahun_aktif()
         if ta:
             session["ta_id"] = ta["id"]
@@ -181,12 +242,24 @@ def login():
                 session["ta_id"] = ta["id"]
             flash(f"Selamat datang, {user['nama_lengkap']}.", "success")
             if user["role"] == "orang_tua" and user.get("must_change_password"):
+                session["sudah_ingat_sandi"] = True
                 flash(
-                    "Anda masih memakai password default. Disarankan mengganti password.",
+                    "Anda masih memakai password bawaan. Password dapat diganti lewat menu Ganti Password.",
                     "warning",
                 )
-                return redirect(url_for("ganti_password"))
-            return redirect(url_for("dashboard"))
+            tujuan = redirect(url_for("dashboard"))
+            if user["role"] == "orang_tua":
+                from sso import pasang
+                return pasang(
+                    tujuan,
+                    {
+                        "id": user["id"],
+                        "username": user["username"],
+                        "nama": user["nama_lengkap"],
+                        "role": "orang_tua",
+                    },
+                )
+            return tujuan
         flash("Username atau password salah.", "danger")
     try:
         default_pw = get_default_parent_password()
@@ -937,6 +1010,8 @@ def _sync_evaluasi(siswa_id, ta_id):
 def laporan_index():
     ta = current_ta_id()
     if not ta:
+        if is_parent():
+            return redirect(url_for("dashboard"))
         return redirect(url_for("tahun_ajaran"))
     q = request.args.get("q", "").strip()
     kelas_id = request.args.get("kelas_id", "")

@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, redirect, request, session
 from flask_login import LoginManager, current_user, login_user
 
 from config import SECRET_KEY, SCHOOL_NAME, SCHOOL_SHORT, RESOURCE_DIR
@@ -48,20 +48,32 @@ def create_app():
 
     @app.before_request
     def masuk_dari_portal():
-        if request.endpoint in {None, "static", "auth.login"}:
-            return None
-        if current_user.is_authenticated:
-            return None
         try:
-            from sso import baca
+            from sso import baca, boleh_data
 
             data = baca(request)
         except Exception:
+            data = None
+        if data and not boleh_data(data, "inventaris"):
+            if session.get("dari_portal"):
+                from flask_login import logout_user
+
+                logout_user()
+                session.pop("dari_portal", None)
+            if request.endpoint not in {None, "static", "auth.login"}:
+                return redirect("/?akses=inventaris")
             return None
-        if not data:
+        from sso import cegah_ubah
+
+        tertahan = cegah_ubah(request, {"auth.login"})
+        if tertahan is not None:
+            return tertahan
+        if request.endpoint in {None, "static", "auth.login"} or not data:
+            return None
+        if current_user.is_authenticated:
             return None
         user = User.get_by_username(data.get("username") or "")
-        if user is None and data.get("role") == "admin":
+        if user is None:
             from app.db import get_connection
 
             conn = get_connection()
@@ -75,6 +87,7 @@ def create_app():
             user = User(row) if row else None
         if user is not None:
             login_user(user)
+            session["dari_portal"] = True
         return None
 
     @app.context_processor

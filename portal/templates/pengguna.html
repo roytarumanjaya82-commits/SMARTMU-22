@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pengguna · SMARTMU 22</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body>
+  <div class="bungkus">
+    <header class="puncak">
+      <div class="identitas">
+        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+        <div>
+          <h1>Pengguna</h1>
+          <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+        </div>
+      </div>
+      <div class="aksi">
+        <a class="keluar" href="{{ url_for('beranda') }}">Portal</a>
+        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for jenis, pesan in messages %}
+      <div class="flash {{ jenis }}">{{ pesan }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <section class="lembar" id="akun-saya">
+      <h2>Akun admin</h2>
+      <p>Ganti username atau kata sandi akun yang sedang dipakai. Kata sandi saat ini wajib diisi.</p>
+      <form method="post" action="{{ url_for('simpan_pengguna', pengguna_id=akun.id) }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label for="username-saya">Username</label>
+        <input id="username-saya" name="username" value="{{ akun.username }}" autocomplete="username" required>
+        <label for="sandi-lama">Kata sandi saat ini</label>
+        <input id="sandi-lama" name="sandi_lama" type="password" autocomplete="current-password" required>
+        <label for="sandi-baru">Kata sandi baru</label>
+        <input id="sandi-baru" name="sandi_baru" type="password" autocomplete="new-password" placeholder="Kosongkan jika hanya mengganti username">
+        <label for="sandi-ulang">Ulangi kata sandi baru</label>
+        <input id="sandi-ulang" name="sandi_ulang" type="password" autocomplete="new-password">
+        <button class="tombol lebar" type="submit">Simpan akun saya</button>
+      </form>
+    </section>
+
+    <section class="lembar" id="tambah">
+      <h2>Tambah pengguna</h2>
+      <p>Akun baru hanya dapat masuk ke portal yang Anda centang.</p>
+      <form method="post" action="{{ url_for('tambah_pengguna') }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label for="nama-baru">Nama</label>
+        <input id="nama-baru" name="nama" required>
+        <label for="username-baru">Username</label>
+        <input id="username-baru" name="username" autocomplete="off" required>
+        <label for="sandi-pengguna">Kata sandi</label>
+        <input id="sandi-pengguna" name="sandi_baru" type="password" autocomplete="new-password" required>
+        <label for="sandi-pengguna-ulang">Ulangi kata sandi</label>
+        <input id="sandi-pengguna-ulang" name="sandi_ulang" type="password" autocomplete="new-password" required>
+        <p class="catatan">Portal yang boleh dibuka</p>
+        <div class="pilihan">
+          {% for kunci, nama in portal_opsi %}
+          <label class="centang"><input type="checkbox" name="portal" value="{{ kunci }}"> <span>{{ nama }}</span></label>
+          {% endfor %}
+        </div>
+        <button class="tombol lebar" type="submit">Tambah pengguna</button>
+      </form>
+    </section>
+
+    <section class="lembar">
+      <h2>Daftar pengguna</h2>
+      <p>Username pengguna hanya membuka portal yang dicentang. Admin dapat membuka dan mengubah semua portal.</p>
+      <div class="gulung">
+        <table class="tabel">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Username</th>
+              <th>Peran</th>
+              <th>Portal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for orang in daftar %}
+            <tr>
+              <td>
+                <strong>{{ orang.nama }}</strong>
+                {% if orang.id == akun.id %}<span class="lencana">Akun Anda</span>{% endif %}
+                {% if not orang.aktif %}<span class="lencana redup">Nonaktif</span>{% endif %}
+              </td>
+              <td>{{ orang.username }}</td>
+              <td>{{ peran.get(orang.role, orang.role) }}</td>
+              <td>{% if orang.semua %}Semua portal{% elif orang.akses_nama %}{{ orang.akses_nama }}{% else %}Belum ada{% endif %}</td>
+              <td>
+                {% if orang.id == akun.id %}
+                <a class="tombol" href="#akun-saya">Ubah</a>
+                {% else %}
+                <a class="tombol" href="{{ url_for('ubah_pengguna', pengguna_id=orang.id) }}">Ubah</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

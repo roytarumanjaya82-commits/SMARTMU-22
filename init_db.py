@@ -58,6 +58,13 @@ def siapkan_portal(cur):
         )"""
     )
     cur.execute(
+        """CREATE TABLE IF NOT EXISTS pengguna_akses (
+            pengguna_id INT NOT NULL,
+            portal VARCHAR(20) NOT NULL,
+            PRIMARY KEY (pengguna_id, portal)
+        )"""
+    )
+    cur.execute(
         """CREATE TABLE IF NOT EXISTS bk_dokumen (
             id TINYINT PRIMARY KEY,
             isi LONGTEXT NOT NULL,

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ubah pengguna · SMARTMU 22</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body>
+  <div class="bungkus">
+    <header class="puncak">
+      <div class="identitas">
+        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+        <div>
+          <h1>Ubah pengguna</h1>
+          <p>{{ orang.nama }} · {{ peran.get(orang.role, orang.role) }}</p>
+        </div>
+      </div>
+      <div class="aksi">
+        <a class="keluar" href="{{ url_for('pengguna') }}">Pengguna</a>
+        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for jenis, pesan in messages %}
+      <div class="flash {{ jenis }}">{{ pesan }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <section class="lembar">
+      <h2>{{ orang.nama }}</h2>
+      <p>Kosongkan kata sandi baru jika username saja yang diganti. Pengguna masuk lagi dengan username dan kata sandi yang baru.</p>
+      <form method="post" action="{{ url_for('simpan_pengguna', pengguna_id=orang.id) }}">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label for="username">Username</label>
+        <input id="username" name="username" value="{{ orang.username }}" autocomplete="off" required>
+        <label for="sandi-baru">Kata sandi baru</label>
+        <input id="sandi-baru" name="sandi_baru" type="password" autocomplete="new-password" placeholder="Kosongkan jika tidak diganti">
+        <label for="sandi-ulang">Ulangi kata sandi baru</label>
+        <input id="sandi-ulang" name="sandi_ulang" type="password" autocomplete="new-password">
+        {% if orang.semua %}
+        <p class="catatan">Akun admin dapat membuka dan mengubah semua portal.</p>
+        {% else %}
+        <p class="catatan">Portal yang boleh dibuka akun ini</p>
+        <div class="pilihan">
+          {% for kunci, nama in portal_opsi %}
+          <label class="centang"><input type="checkbox" name="portal" value="{{ kunci }}" {% if kunci in orang.akses %}checked{% endif %}> <span>{{ nama }}</span></label>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <button class="tombol lebar" type="submit">Simpan</button>
+      </form>
+    </section>
+  </div>
+</body>
+</html>

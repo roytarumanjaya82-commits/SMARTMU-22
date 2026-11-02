@@ -12,7 +12,7 @@ from pengaturan import (
     SMARTMU_DATABASE,
 )
 from portal import tautan_masuk
-from sso import baca
+from sso import baca, boleh_data
 
 import os
 
@@ -42,7 +42,17 @@ def create_app():
     def wajib_masuk():
         if request.endpoint == "berkas":
             return None
-        if baca(request):
+        data = baca(request)
+        if data and not boleh_data(data, "bk"):
+            if request.path.startswith("/api/"):
+                return jsonify(error="Akun ini tidak dapat membuka Rapor BK."), 403
+            return __import__("flask").redirect("/?akses=bk")
+        if data and data.get("role") != "admin" and request.method not in {"GET", "HEAD", "OPTIONS"}:
+            if request.path.startswith("/api/"):
+                return jsonify(error="Perubahan data hanya dapat dilakukan admin."), 403
+            from sso import cegah_ubah
+            return cegah_ubah(request)
+        if data:
             return None
         if request.path.startswith("/api/"):
             return jsonify(error="Silakan masuk lewat portal SMARTMU."), 401

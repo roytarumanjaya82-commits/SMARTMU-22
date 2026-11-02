@@ -32,6 +32,7 @@ a { color: inherit; }
 .identitas img { width: 58px; height: 58px; object-fit: contain; }
 .identitas h1 { margin: 0; font-size: 1.45rem; letter-spacing: -0.03em; }
 .identitas p { margin: 2px 0 0; color: var(--redup); }
+.aksi { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .keluar, .masuk-tautan {
   text-decoration: none;
   border: 1px solid var(--hijau);
@@ -113,7 +114,76 @@ button {
 .flash.info { background: #e7f3ec; color: #0c4f3b; }
 .catatan { margin: 16px 0 0; color: var(--redup); font-size: 0.92rem; line-height: 1.45; }
 
+.lembar {
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 18px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 12px 32px rgba(28, 48, 36, 0.06);
+}
+.lembar h2 { margin: 0 0 8px; font-size: 1.25rem; }
+.lembar > p { margin: 0 0 14px; color: var(--redup); line-height: 1.45; }
+.daftar-db { list-style: none; margin: 0; padding: 0; }
+.daftar-db li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--garis);
+}
+.daftar-db strong { display: block; }
+.daftar-db span { color: var(--redup); font-size: 0.92rem; }
+.tombol, a.tombol {
+  width: auto;
+  display: inline-block;
+  margin-top: 0;
+  text-decoration: none;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--hijau);
+  color: white;
+  font-weight: 700;
+  padding: 10px 14px;
+}
+.tombol.lebar { width: 100%; }
+.peringatan {
+  background: #fff6e8;
+  color: #7a4e00;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+.pilihan { display: grid; gap: 8px; margin: 8px 0 4px; }
+.centang {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-weight: 700;
+  margin-top: 0;
+}
+.centang input { width: auto; margin-top: 3px; }
+.kosong { color: var(--redup); }
+.gulung { overflow-x: auto; }
+.tabel { width: 100%; border-collapse: collapse; }
+.tabel th, .tabel td { text-align: left; padding: 10px 8px; border-top: 1px solid var(--garis); vertical-align: middle; }
+.tabel th { color: var(--redup); font-size: 0.85rem; font-weight: 700; }
+.lencana {
+  display: inline-block;
+  margin-left: 6px;
+  background: #e7f3ec;
+  color: var(--hijau);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.lencana.redup { background: #f3efe6; color: var(--redup); }
+
 @media (max-width: 760px) {
   .kisi { grid-template-columns: 1fr; }
   .puncak { align-items: flex-start; }
+  .daftar-db li { align-items: flex-start; flex-direction: column; }
 }

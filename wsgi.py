@@ -12,6 +12,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from portal import create_app  # noqa: E402
+from portal.akun import akses_username  # noqa: E402
+from sso import baca_cookie, boleh_data  # noqa: E402
 
 PORTAL = create_app()
 
@@ -132,9 +134,56 @@ _MENU = (
 )
 
 
-def _batang(path, masuk):
+_PINTU = (
+    ("/presensi", "presensi", ("/login", "/daftar", "/lupa", "/ortu", "/static/", "/sw.js", "/offline")),
+    ("/erapor", "erapor", ("/login", "/static/")),
+    ("/tahfidz", "tahfidz", ("/login", "/static/")),
+    ("/bk", "bk", ()),
+    ("/inventaris", "inventaris", ("/login", "/static/")),
+)
+
+
+def _publik(sisa, daftar):
+    for awalan in daftar:
+        if sisa == awalan or sisa.startswith(awalan):
+            return True
+    return False
+
+
+def _tolak_portal(environ):
+    path = environ.get("PATH_INFO") or "/"
+    data = baca_cookie(environ.get("HTTP_COOKIE", ""))
+    if not data:
+        return None
+    for awalan, kunci, publik in _PINTU:
+        if path != awalan and not path.startswith(awalan + "/"):
+            continue
+        sisa = path[len(awalan) :] or "/"
+        if _publik(sisa, publik):
+            return None
+        if not boleh_data(data, kunci):
+            return "/?akses=" + kunci
+    return None
+
+
+def _menu_untuk(environ):
+    data = baca_cookie(environ.get("HTTP_COOKIE", ""))
+    if not data:
+        return (("/", "Beranda"),)
+    if data.get("role") == "admin":
+        return _MENU
+    if data.get("role") == "orang_tua":
+        return (("/tahfidz/", "Perkembangan Anak"),)
+    try:
+        punya = akses_username(data.get("username") or "")
+    except Exception:
+        return (("/", "Beranda"),)
+    return tuple(item for item in _MENU if item[0] == "/" or item[0].strip("/") in punya)
+
+
+def _batang(path, masuk, menu):
     tautan = []
-    for href, nama in _MENU:
+    for href, nama in menu:
         nyala = " on" if (href == "/" and path in {"/", "/login"}) or (
             href != "/" and (path == href.rstrip("/") or path.startswith(href))
         ) else ""
@@ -157,7 +206,15 @@ class BatangPortal:
 
     def __call__(self, environ, start_response):
         path = environ.get("PATH_INFO") or "/"
+        ditolak = _tolak_portal(environ)
+        if ditolak:
+            start_response(
+                "302 FOUND",
+                [("Location", ditolak), ("Content-Length", "0")],
+            )
+            return [b""]
         masuk = "smartmu_sso=" in environ.get("HTTP_COOKIE", "")
+        menu = _menu_untuk(environ)
         status = "500 INTERNAL SERVER ERROR"
         headers = []
 
@@ -181,7 +238,7 @@ class BatangPortal:
             awal = tubuh.lower().find(b"<body")
             selesai = tubuh.find(b">", awal)
             if selesai != -1:
-                tubuh = tubuh[: selesai + 1] + _batang(path, masuk) + tubuh[selesai + 1 :]
+                tubuh = tubuh[: selesai + 1] + _batang(path, masuk, menu) + tubuh[selesai + 1 :]
                 headers = [
                     (kunci, nilai)
                     for kunci, nilai in headers

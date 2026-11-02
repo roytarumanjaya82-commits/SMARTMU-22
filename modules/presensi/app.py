@@ -179,15 +179,24 @@ def prefiks_tautan(respons):
 
 @app.before_request
 def jaga_akses():
-    if request.endpoint not in ("login", "daftar_ortu", "lupa_ortu", "static", "service_worker", "offline") and not session.get("masuk") and not session.get("ortu_id"):
-        try:
-            from sso import baca
-            if baca(request):
-                session.permanent = True
-                session["masuk"] = True
-                session["csrf"] = secrets.token_urlsafe(32)
-        except Exception:
-            pass
+    publik = request.endpoint in ("login", "daftar_ortu", "lupa_ortu", "static", "service_worker", "offline") or request.path.startswith("/static/")
+    try:
+        from sso import baca, boleh_data
+        data = baca(request)
+    except Exception:
+        data = None
+    if data and not boleh_data(data, "presensi"):
+        if session.get("dari_portal"):
+            session.pop("masuk", None)
+            session.pop("dari_portal", None)
+            session.pop("csrf", None)
+        if not publik and not session.get("ortu_id"):
+            return redirect("/?akses=presensi")
+    elif data and not session.get("masuk") and not session.get("ortu_id") and not publik:
+        session.permanent = True
+        session["masuk"] = True
+        session["dari_portal"] = True
+        session["csrf"] = secrets.token_urlsafe(32)
     if request.endpoint in ("login", "daftar_ortu", "lupa_ortu", "ortu", "static", "service_worker", "offline") or request.path.startswith("/static/"):
         return None
     if session.get("ortu_id") and not session.get("masuk"):
@@ -201,6 +210,11 @@ def jaga_akses():
         if tujuan.endswith("?"):
             tujuan = tujuan[:-1]
         return redirect(url_for("login", next=tujuan))
+    if not (request.endpoint or "").startswith("ortu"):
+        from sso import cegah_ubah
+        tertahan = cegah_ubah(request, {"login", "daftar_ortu", "lupa_ortu", "keluar"})
+        if tertahan is not None:
+            return tertahan
     if request.method == "POST":
         origin = request.headers.get("Origin", "")
         if origin and origin != request.host_url.rstrip("/"):

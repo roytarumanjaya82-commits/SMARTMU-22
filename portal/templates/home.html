@@ -17,9 +17,23 @@
           <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
         </div>
       </div>
-      <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      <div class="aksi">
+        {% if session.role == 'admin' %}
+        <a class="keluar" href="{{ url_for('pengguna') }}">Pengguna</a>
+        <a class="keluar" href="{{ url_for('cadangan') }}">Cadangan</a>
+        {% endif %}
+        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
     </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for jenis, pesan in messages %}
+      <div class="flash {{ jenis }}">{{ pesan }}</div>
+      {% endfor %}
+    {% endwith %}
     <p class="sapa">Selamat datang, <strong>{{ session.nama }}</strong>. Pilih portal yang akan dibuka.</p>
+    {% if not modul_list %}
+    <p class="sapa">Belum ada portal yang dibuka untuk akun ini. Minta admin mencentang portal pada menu Pengguna.</p>
+    {% endif %}
     <section class="kisi">
       {% for modul in modul_list %}
       <a class="kartu" href="{{ modul.href }}">

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadangan · SMARTMU 22</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body>
+  <div class="bungkus">
+    <header class="puncak">
+      <div class="identitas">
+        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+        <div>
+          <h1>Cadangan database</h1>
+          <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+        </div>
+      </div>
+      <div class="aksi">
+        <a class="keluar" href="{{ url_for('beranda') }}">Portal</a>
+        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for jenis, pesan in messages %}
+      <div class="flash {{ jenis }}">{{ pesan }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <section class="lembar">
+      <h2>Unduh cadangan</h2>
+      <p>Berkas SQL ini memuat Portal, Presensi, eRapor, Tahfidz, Rapor BK, dan Inventaris.</p>
+      {% if daftar %}
+      <p><a class="tombol" href="{{ url_for('unduh_cadangan') }}">Unduh semua database</a></p>
+      <ul class="daftar-db">
+        {% for item in daftar %}
+        <li>
+          <div>
+            <strong>{{ item.judul }}</strong>
+            {% if item.ada %}
+            <span>{{ item.nama }} · {{ item.tabel }} tabel · {{ format_ukuran(item.ukuran) }}</span>
+            {% else %}
+            <span class="kosong">{{ item.nama }} belum ada</span>
+            {% endif %}
+          </div>
+          {% if item.ada %}
+          <a class="tombol" href="{{ url_for('unduh_cadangan', nama=item.nama) }}">Unduh</a>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="lembar">
+      <h2>Unggah cadangan</h2>
+      <p>Pulihkan berkas .sql yang diunduh dari halaman ini. Data pada database yang ada di berkas akan diganti.</p>
+      <div class="peringatan">Lakukan ini saat tidak ada yang sedang mengisi nilai atau presensi. Simpan cadangan terbaru sebelum memulihkan berkas lama.</div>
+      <form method="post" action="{{ url_for('pulihkan_cadangan') }}" enctype="multipart/form-data">
+        <input type="hidden" name="token" value="{{ token }}">
+        <label for="berkas">Berkas cadangan</label>
+        <input id="berkas" name="berkas" type="file" accept=".sql,text/plain" required>
+        <label class="centang">
+          <input type="checkbox" name="setuju" value="ya" required>
+          <span>Saya mengerti data yang ada akan diganti dengan isi berkas ini.</span>
+        </label>
+        <button class="tombol lebar" type="submit">Pulihkan cadangan</button>
+      </form>
+    </section>
+  </div>
+</body>
+</html>

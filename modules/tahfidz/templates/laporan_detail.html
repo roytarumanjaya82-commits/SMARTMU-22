@@ -58,6 +58,7 @@
           <th>Surah / Ayat</th>
           <th>Volume</th>
           <th>Nilai & Kualitas</th>
+          <th>Musyrif</th>
           <th>Status</th>
           <th>Catatan Musyrif</th>
         </tr>
@@ -69,12 +70,13 @@
           <td>{{ s.jenis }}</td>
           <td>{{ s.surah }}</td>
           <td>{{ s.volume_halaman }} Halaman{% if s.volume_baris %} · {{ s.volume_baris }} Baris{% endif %}</td>
-          <td>{{ s.predikat }}</td>
+          <td>{{ s.predikat or '—' }}</td>
+          <td>{% if s.nama_musyrif %}{{ s.nama_musyrif }}{% if s.gelar_musyrif %}, {{ s.gelar_musyrif }}{% endif %}{% else %}—{% endif %}</td>
           <td><span class="badge badge-{{ 'success' if s.status=='Lulus' else 'warning' }}">{{ s.status }}</span></td>
           <td>{{ s.catatan or '—' }}</td>
         </tr>
         {% else %}
-        <tr><td colspan="7" class="empty">Belum ada setoran untuk murid ini.</td></tr>
+        <tr><td colspan="8" class="empty">Belum ada setoran untuk murid ini.</td></tr>
         {% endfor %}
       </tbody>
     </table>

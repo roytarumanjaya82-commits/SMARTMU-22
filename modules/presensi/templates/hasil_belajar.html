@@ -3,7 +3,11 @@
 {% block content %}
 <div class="card shadow-sm p-4 mb-4 bg-white rounded">
     <h4 class="mb-2 text-primary fw-bold">Hasil Pembelajaran Harian</h4>
+    {% if hanya_mapel %}
+    <p class="text-muted">Yang tampil hanya kelas dan mata pelajaran yang Anda ampu. Isi materi, PR, dan ulangan untuk pelajaran itu.</p>
+    {% else %}
     <p class="text-muted">Isi materi, PR, dan ulangan. Password awal orang tua diisi di samping nama siswa. Mereka masuk dengan username dan password itu, dan bisa menggantinya jika lupa.</p>
+    {% endif %}
 
     <form method="GET" action="/hasil-belajar" class="row g-3 mb-4">
         <div class="col-md-5">
@@ -44,9 +48,14 @@
             <input class="form-control" name="ulangan_ket_{{ loop.index0 }}" value="{{ item.ulangan_ket }}" placeholder="Materi ulangan, kalau ada">
         </div>
         {% else %}
+        {% if hanya_mapel %}
+        <p class="text-muted">Anda tidak mengampu mata pelajaran di kelas ini.</p>
+        {% else %}
         <p class="text-muted">Kelas ini belum punya mata pelajaran di penugasan guru. Tambah satu di bawah.</p>
+        {% endif %}
         {% endfor %}
 
+        {% if not hanya_mapel %}
         <div class="border rounded p-3 mb-4">
             <div class="fw-bold mb-2">Tambah mata pelajaran hari ini</div>
             <input class="form-control mb-2" name="mapel_baru" placeholder="Nama mata pelajaran" style="min-height: 48px;">
@@ -88,6 +97,7 @@
             <input class="form-control" name="catatan_{{ siswa.id }}" value="{{ siswa.catatan }}" placeholder="Catatan untuk orang tua siswa ini">
         </div>
         {% endfor %}
+        {% endif %}
 
         <button type="submit" class="btn btn-primary mt-3" style="min-height: 48px;">Simpan hasil belajar</button>
     </form>

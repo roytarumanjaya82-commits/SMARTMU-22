@@ -4,7 +4,9 @@
 <div class="card shadow-sm p-4 mb-4 bg-white rounded">
     <h4 class="mb-2 text-primary fw-bold">Import Data Siswa</h4>
     <p class="text-muted">Setiap tahun ajaran, unggah daftar nilai terbaru. Siswa yang naik kelas dipindahkan, siswa baru ditambahkan, dan riwayat presensi tetap tersimpan.</p>
-    <p class="mb-3">Format file mengikuti daftar nilai: kolom <b>No</b>, <b>NIS</b>, <b>Nama</b>, <b>L/P</b>, dan <b>Kelas</b> (contoh 7.1).</p>
+    <p class="mb-2">Format file mengikuti daftar nilai: kolom <b>No</b>, <b>NIS</b>, <b>Nama</b>, <b>L/P</b>, <b>Kelas</b> (contoh 7.1), dan <b>Nama Orang Tua</b>.</p>
+    <p class="mb-3">Nama orang tua menjadi username akun orang tua, sama seperti di portal Tahfidz. Password awalnya <b>{{ password_awal }}</b>. Jika kelas anak ada di Tahfidz, orang tua melihat Laporan Tahfidz, Laporan Lengkap, Pengumuman, dan Hasil Belajar. Jika kelasnya belum ada di Tahfidz, yang tampil hanya Pengumuman dan Hasil Belajar.</p>
+    <p class="mb-3"><a class="btn btn-outline-success" href="/import-siswa/blanko">Unduh Blanko Excel</a></p>
     <form method="POST" action="/import-siswa" enctype="multipart/form-data" class="row g-3 align-items-end">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <div class="col-md-3">
@@ -36,6 +38,7 @@
         <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Diperbarui</div><div class="fs-4 fw-bold">{{ preview.counts.ubah }}</div></div></div>
         <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Tetap</div><div class="fs-4 fw-bold">{{ preview.counts.tetap }}</div></div></div>
         <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Tidak ada di file</div><div class="fs-4 fw-bold">{{ preview.keluar|length }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Akun orang tua</div><div class="fs-4 fw-bold">{{ preview.ortu }}</div></div></div>
     </div>
     <div class="table-responsive mb-3">
         <table class="table table-sm table-bordered as-cards">

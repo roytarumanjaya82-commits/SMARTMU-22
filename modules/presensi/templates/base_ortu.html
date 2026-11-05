@@ -50,20 +50,34 @@
 <body>
     {% set path = request.path %}
     <aside id="sidebar" class="app-sidebar" aria-label="Menu laporan">
-        <a class="brand" href="/ortu/presensi">
+        <a class="brand" href="{% if session.get('ortu_portal') %}/ortu/pengumuman{% else %}/ortu/presensi{% endif %}">
             <img class="brand-mark" src="{{ url_for('static', filename='logo_smp.jpeg') }}" alt="Logo SMP Muhammadiyah 22 Pamulang">
             <span class="brand-name">SMPM 22<small>Orang tua</small></span>
         </a>
         <nav class="side-nav">
+            {% if session.get('ortu_portal') %}
+            {% if session.get('ikut_tahfidz') %}
+            <a class="side-link" href="{{ request.host_url }}tahfidz/">Laporan Tahfidz</a>
+            <a class="side-link" href="{{ request.host_url }}tahfidz/laporan">Laporan Lengkap</a>
+            {% endif %}
+            <a class="side-link {% if path.startswith('/ortu/pengumuman') %}is-active{% endif %}" href="/ortu/pengumuman">Pengumuman</a>
+            <a class="side-link {% if path.startswith('/ortu/hasil-belajar') %}is-active{% endif %}" href="/ortu/hasil-belajar">Hasil belajar</a>
+            <a class="side-link" href="{{ request.host_url }}tahfidz/ganti-password">Ganti Password</a>
+            {% else %}
             <a class="side-link {% if path.startswith('/ortu/presensi') %}is-active{% endif %}" href="/ortu/presensi">Laporan presensi</a>
             <a class="side-link {% if path.startswith('/ortu/tugas') %}is-active{% endif %}" href="/ortu/tugas">Laporan tugas / PR</a>
             <a class="side-link {% if path.startswith('/ortu/ulangan') %}is-active{% endif %}" href="/ortu/ulangan">Laporan ulangan</a>
             <a class="side-link {% if path.startswith('/ortu/pengumuman') %}is-active{% endif %}" href="/ortu/pengumuman">Pengumuman kegiatan</a>
+            {% endif %}
         </nav>
+        {% if session.get('ortu_portal') %}
+        <a class="side-link" href="{{ request.host_url }}logout">Keluar</a>
+        {% else %}
         <form method="POST" action="/ortu/keluar">
             <input type="hidden" name="csrf" value="{{ csrf }}">
             <button type="submit" class="side-link">Keluar</button>
         </form>
+        {% endif %}
     </aside>
     <button type="button" class="nav-backdrop" hidden aria-label="Tutup menu"></button>
     <div class="app-main">

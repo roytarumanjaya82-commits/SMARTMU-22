@@ -29,8 +29,12 @@
     <nav class="nav" onclick="if(event.target.closest('a')) closeSidebar()">
       {% if session.get('role') == 'orang_tua' %}
       <div class="nav-section">Orang Tua</div>
-      <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Perkembangan Anak</a>
+      {% if session.get('ikut_tahfidz') %}
+      <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Laporan Tahfidz</a>
       <a href="{{ url_for('laporan_index') }}" class="{% if request.endpoint and request.endpoint.startswith('laporan') %}active{% endif %}">Laporan Lengkap</a>
+      {% endif %}
+      <a href="/presensi/ortu/pengumuman">Pengumuman</a>
+      <a href="/presensi/ortu/hasil-belajar">Hasil Belajar</a>
       <a href="{{ url_for('ganti_password') }}" class="{% if request.endpoint == 'ganti_password' %}active{% endif %}">Ganti Password</a>
       {% else %}
       <div class="nav-section">Utama</div>

@@ -12,7 +12,14 @@ import secrets
 import time
 from pathlib import Path
 
-from import_excel import name_key, parse_workbook
+from import_excel import (
+    lepaskan_gelar,
+    nama_dengan_gelar,
+    name_key,
+    normalize_class,
+    normalize_name,
+    parse_workbook,
+)
 
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 
@@ -102,9 +109,9 @@ def siswa_dengan_kode(nis, kode):
     return None
 
 def username_ortu_valid(nama, siswa_id):
-    nama = (nama or "").strip()
-    if not re.fullmatch(r"[A-Za-z0-9._]{4,32}", nama):
-        return "Username 4 sampai 32 karakter: huruf, angka, titik, atau garis bawah."
+    nama = " ".join((nama or "").split())
+    if not re.fullmatch(r"[\w .'\-]{3,150}", nama, re.UNICODE):
+        return "Username 3 sampai 150 karakter: huruf, angka, spasi, titik, atau garis."
     if nama.lower() == (os.environ.get("AUTH_USERNAME") or "").lower():
         return "Username itu tidak bisa dipakai."
     conn = get_db_connection()
@@ -185,6 +192,63 @@ def jaga_akses():
         data = baca(request)
     except Exception:
         data = None
+    if data and data.get("role") == "orang_tua":
+        session["ortu_portal"] = True
+        session["dari_portal"] = True
+        session["ortu_nama"] = " ".join((data.get("username") or "").split())
+        try:
+            from portal.kelas_ortu import anak_ikut_tahfidz
+            session["ikut_tahfidz"] = anak_ikut_tahfidz(session["ortu_nama"], data.get("id"))
+        except Exception:
+            session["ikut_tahfidz"] = False
+        session.permanent = True
+        if "csrf" not in session:
+            session["csrf"] = secrets.token_urlsafe(32)
+        if not session.get("ortu_id"):
+            anak = id_anak_pertama(session["ortu_nama"])
+            if anak:
+                session["ortu_id"] = anak
+        if request.endpoint in ("static", "service_worker", "offline") or request.path.startswith("/static/"):
+            return None
+        if request.endpoint not in ("ortu_pengumuman", "ortu_hasil", "ortu_keluar"):
+            return redirect("/presensi/ortu/pengumuman")
+        if request.method == "POST":
+            cek_csrf()
+        return None
+    if data and data.get("role") in {"guru_piket", "guru_bk", "guru_pengampu"}:
+        session["guru_piket"] = data.get("role") == "guru_piket"
+        session["guru_bk"] = data.get("role") == "guru_bk"
+        session["guru_pengampu"] = data.get("role") == "guru_pengampu"
+        session["guru_id"] = data.get("id")
+        session["masuk"] = True
+        session["dari_portal"] = True
+        session.permanent = True
+        if "csrf" not in session:
+            session["csrf"] = secrets.token_urlsafe(32)
+        if data.get("role") == "guru_piket":
+            try:
+                from portal.guru_akun import mengajar_bk, punya_mapel
+                session["guru_bk"] = mengajar_bk(data.get("id"))
+                session["guru_mapel"] = punya_mapel(data.get("id"))
+            except Exception:
+                session["guru_bk"] = False
+                session["guru_mapel"] = False
+        else:
+            session["guru_mapel"] = True
+        if request.endpoint in ("static", "service_worker", "offline") or request.path.startswith("/static/"):
+            return None
+        if data.get("role") == "guru_piket":
+            boleh = ("input_presensi", "tata_tertib", "laporan_harian", "rekap_bulanan", "hasil_belajar", "ganti_password_guru", "keluar")
+            if request.endpoint not in boleh:
+                return redirect("/presensi/presensi")
+        elif request.endpoint not in ("hasil_belajar", "ganti_password_guru", "keluar"):
+            tujuan = "/bk/" if data.get("role") == "guru_bk" else "/presensi/hasil-belajar"
+            return redirect(tujuan)
+        if request.method == "POST":
+            cek_csrf()
+        return None
+    for kunci in ("guru_piket", "guru_bk", "guru_pengampu", "guru_mapel", "guru_id"):
+        session.pop(kunci, None)
     if data and not boleh_data(data, "presensi"):
         if session.get("dari_portal"):
             session.pop("masuk", None)
@@ -200,8 +264,9 @@ def jaga_akses():
     if request.endpoint in ("login", "daftar_ortu", "lupa_ortu", "ortu", "static", "service_worker", "offline") or request.path.startswith("/static/"):
         return None
     if session.get("ortu_id") and not session.get("masuk"):
-        if request.endpoint not in ("ortu_presensi", "ortu_tugas", "ortu_ulangan", "ortu_pengumuman", "ortu_keluar"):
-            return redirect(url_for("ortu_presensi"))
+        menu_ortu = ("ortu_pengumuman", "ortu_hasil", "ortu_keluar") if session.get("ortu_portal") else ("ortu_presensi", "ortu_tugas", "ortu_ulangan", "ortu_pengumuman", "ortu_keluar")
+        if request.endpoint not in menu_ortu:
+            return redirect(url_for("ortu_pengumuman" if session.get("ortu_portal") else "ortu_presensi"))
         if request.method == "POST":
             cek_csrf()
         return None
@@ -534,9 +599,25 @@ def ensure_schema(conn):
         conn.commit()
     cursor.execute("SHOW COLUMNS FROM siswa LIKE 'username_ortu'")
     if cursor.fetchone() is None:
-        cursor.execute("ALTER TABLE siswa ADD COLUMN username_ortu VARCHAR(32) NULL")
+        cursor.execute("ALTER TABLE siswa ADD COLUMN username_ortu VARCHAR(150) NULL")
         cursor.execute("ALTER TABLE siswa ADD COLUMN password_ortu VARCHAR(255) NULL")
-        cursor.execute("CREATE UNIQUE INDEX uniq_siswa_username_ortu ON siswa (username_ortu)")
+        conn.commit()
+    else:
+        cursor.execute("SHOW INDEX FROM siswa WHERE Key_name = 'uniq_siswa_username_ortu'")
+        if cursor.fetchone() is not None:
+            cursor.execute("ALTER TABLE siswa DROP INDEX uniq_siswa_username_ortu")
+            conn.commit()
+        cursor.execute(
+            "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'siswa' AND COLUMN_NAME = 'username_ortu'"
+        )
+        ukuran = cursor.fetchone()
+        if ukuran and ukuran[0] and int(ukuran[0]) < 150:
+            cursor.execute("ALTER TABLE siswa MODIFY username_ortu VARCHAR(150) NULL")
+            conn.commit()
+    cursor.execute("SHOW COLUMNS FROM siswa LIKE 'nama_orang_tua'")
+    if cursor.fetchone() is None:
+        cursor.execute("ALTER TABLE siswa ADD COLUMN nama_orang_tua VARCHAR(150) NULL")
         conn.commit()
     cursor.execute("SHOW TABLES LIKE 'hasil_belajar'")
     if cursor.fetchone() is None:
@@ -824,7 +905,7 @@ def urut_kelas(nama):
 def label_hari(tanggal):
     if isinstance(tanggal, str):
         tanggal = datetime.strptime(tanggal, "%Y-%m-%d")
-    return f"{NAMA_HARI[tanggal.weekday()]}, {tanggal.day} {NAMA_BULAN[tanggal.month - 1]} {tanggal.year}"
+    return f"{NAMA_HARI[tanggal.weekday()]}, {tanggal.day} {NAMA_BULAN[tanggal.month]} {tanggal.year}"
 
 def tahun_ajaran_dari(tanggal):
     if isinstance(tanggal, str):
@@ -1145,7 +1226,7 @@ def rekap_bulanan():
 
 def build_import_plan(cursor, students, ajaran):
     cursor.execute("""
-        SELECT s.id, s.nis, s.nama, s.jenis_kelamin, s.kelas_id, s.tahun, s.aktif, k.nama_kelas
+        SELECT s.id, s.nis, s.nama, s.jenis_kelamin, s.kelas_id, s.tahun, s.aktif, s.nama_orang_tua, k.nama_kelas
         FROM siswa s
         LEFT JOIN kelas k ON k.id = s.kelas_id
     """)
@@ -1180,6 +1261,7 @@ def build_import_plan(cursor, students, ajaran):
                 or (match["nama_kelas"] or "") != student["kelas"]
                 or match["tahun"] != ajaran
                 or not match["aktif"]
+                or (student.get("ortu") and (match.get("nama_orang_tua") or "") != student.get("ortu"))
             )
             plan.append({**student, "action": "ubah" if changed else "tetap", "id": match["id"]})
         else:
@@ -1211,11 +1293,13 @@ def apply_import_plan(cursor, plan, ajaran):
             continue
         kelas_id = kelas_id_for(cursor, item["kelas"], cache)
         jk = item["jk"] or "L"
+        ortu = " ".join((item.get("ortu") or "").split())
+        sandi = item.get("sandi_ortu")
         if item["action"] == "baru":
             cursor.execute("""
-                INSERT INTO siswa (nis, nama, jenis_kelamin, kelas_id, tahun, aktif)
-                VALUES (%s, %s, %s, %s, %s, 1)
-            """, (item["nis"] or None, item["nama"], jk, kelas_id, ajaran))
+                INSERT INTO siswa (nis, nama, jenis_kelamin, kelas_id, tahun, aktif, nama_orang_tua, username_ortu, password_ortu)
+                VALUES (%s, %s, %s, %s, %s, 1, %s, %s, %s)
+            """, (item["nis"] or None, item["nama"], jk, kelas_id, ajaran, ortu or None, ortu or None, sandi))
             kept_ids.append(cursor.lastrowid)
         else:
             cursor.execute("""
@@ -1225,9 +1309,15 @@ def apply_import_plan(cursor, plan, ajaran):
                     jenis_kelamin = COALESCE(%s, jenis_kelamin),
                     kelas_id = %s,
                     tahun = %s,
-                    aktif = 1
+                    aktif = 1,
+                    password_ortu = IF(%s = '' OR username_ortu = %s, password_ortu, %s),
+                    nama_orang_tua = IF(%s = '', nama_orang_tua, %s),
+                    username_ortu = IF(%s = '', username_ortu, %s)
                 WHERE id = %s
-            """, (item["nama"], item["nis"], item["jk"], kelas_id, ajaran, item["id"]))
+            """, (
+                item["nama"], item["nis"], item["jk"], kelas_id, ajaran,
+                ortu, ortu, sandi, ortu, ortu or None, ortu, ortu or None, item["id"],
+            ))
             kept_ids.append(item["id"])
     if kept_ids:
         placeholders = ", ".join(["%s"] * len(kept_ids))
@@ -1237,11 +1327,150 @@ def apply_import_plan(cursor, plan, ajaran):
         )
     return len(kept_ids)
 
+def koneksi_tahfidz():
+    from pengaturan import MYSQL_HOST, MYSQL_PASSWORD, MYSQL_PORT, MYSQL_USER, TAHFIDZ_DATABASE
+    return mysql.connector.connect(
+        host=MYSQL_HOST,
+        port=MYSQL_PORT,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        database=TAHFIDZ_DATABASE,
+    )
+
+def password_awal_ortu():
+    try:
+        conn = koneksi_tahfidz()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT setting_value FROM app_settings WHERE setting_key = %s",
+            ("parent_default_password",),
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if row and row[0] and str(row[0]).strip():
+            return str(row[0]).strip()
+    except Exception:
+        pass
+    return "ortuSMPM22"
+
+def hubungkan_orang_tua(plan):
+    """Buat akun Tahfidz dari nama orang tua dan hubungkan siswa yang NIS-nya sama."""
+    kelompok = {}
+    for item in plan:
+        if item.get("action") == "lewati":
+            continue
+        nama = " ".join((item.get("ortu") or "").split())
+        if nama:
+            kelompok.setdefault(nama, []).append((item.get("nis") or "").strip())
+    if not kelompok:
+        return 0, []
+    sandi = generate_password_hash(password_awal_ortu())
+    conn = koneksi_tahfidz()
+    cursor = conn.cursor(dictionary=True)
+    dibuat = 0
+    masalah = []
+    try:
+        for nama, daftar_nis in kelompok.items():
+            cursor.execute("SELECT id, role FROM users WHERE LOWER(username) = LOWER(%s)", (nama,))
+            ada = cursor.fetchone()
+            if ada and ada["role"] != "orang_tua":
+                masalah.append(nama)
+                continue
+            if ada:
+                user_id = ada["id"]
+                cursor.execute("UPDATE users SET aktif = 1 WHERE id = %s", (user_id,))
+            else:
+                cursor.execute(
+                    "INSERT INTO users (username, password_hash, nama_lengkap, role, must_change_password) "
+                    "VALUES (%s, %s, %s, 'orang_tua', 1)",
+                    (nama, sandi, nama),
+                )
+                user_id = cursor.lastrowid
+                dibuat += 1
+            for nis in daftar_nis:
+                if not nis:
+                    continue
+                cursor.execute(
+                    "UPDATE siswa SET orang_tua_user_id = %s WHERE nis = %s AND aktif = 1",
+                    (user_id, nis),
+                )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    return dibuat, masalah
+
+def id_anak_pertama(nama):
+    nama = " ".join((nama or "").split())
+    if not nama:
+        return None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id FROM siswa
+        WHERE aktif = 1 AND (LOWER(nama_orang_tua) = LOWER(%s) OR LOWER(username_ortu) = LOWER(%s))
+        ORDER BY tahun DESC, id
+        LIMIT 1
+    """, (nama, nama))
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+def keluarga_ortu():
+    if not session.get("ortu_id") and not session.get("ortu_nama"):
+        return []
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    nama = " ".join((session.get("ortu_nama") or "").split())
+    if not nama and session.get("ortu_id"):
+        cursor.execute(
+            "SELECT COALESCE(nama_orang_tua, username_ortu, '') AS nama FROM siswa WHERE id = %s",
+            (session["ortu_id"],),
+        )
+        row = cursor.fetchone()
+        nama = " ".join(((row or {}).get("nama") or "").split())
+    if nama:
+        cursor.execute("""
+            SELECT s.id, s.nama, s.nis, s.kelas_id, k.nama_kelas
+            FROM siswa s
+            JOIN kelas k ON k.id = s.kelas_id
+            WHERE s.aktif = 1 AND (
+                LOWER(s.nama_orang_tua) = LOWER(%s)
+                OR LOWER(s.username_ortu) = LOWER(%s)
+                OR s.id = %s
+            )
+            ORDER BY k.nama_kelas, s.nama
+        """, (nama, nama, session.get("ortu_id") or 0))
+    else:
+        cursor.execute("""
+            SELECT s.id, s.nama, s.nis, s.kelas_id, k.nama_kelas
+            FROM siswa s
+            JOIN kelas k ON k.id = s.kelas_id
+            WHERE s.id = %s AND s.aktif = 1
+        """, (session["ortu_id"],))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+@app.route('/import-siswa/blanko')
+def unduh_blanko_siswa():
+    from io import BytesIO
+    from import_excel import buat_blanko
+    isi = buat_blanko(password_awal_ortu())
+    return send_file(
+        BytesIO(isi),
+        as_attachment=True,
+        download_name="blanko_data_siswa.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
 @app.route('/import-siswa', methods=['GET', 'POST'])
 def import_siswa():
     ajaran_default = datetime.now().year if datetime.now().month >= 7 else datetime.now().year - 1
     if request.method == 'GET':
-        return render_template('import_siswa.html', ajaran=ajaran_default, preview=None)
+        return render_template('import_siswa.html', ajaran=ajaran_default, preview=None, password_awal=password_awal_ortu())
 
     upload = request.files.get('berkas')
     try:
@@ -1256,7 +1485,11 @@ def import_siswa():
     students, notes = parse_workbook(upload)
     if not students:
         flash('Tidak ada siswa yang terbaca. Pastikan ada kolom No, NIS, Nama, L/P, dan Kelas.', 'danger')
-        return render_template('import_siswa.html', ajaran=ajaran, preview=None, notes=notes)
+        return render_template('import_siswa.html', ajaran=ajaran, preview=None, notes=notes, password_awal=password_awal_ortu())
+    if any(siswa.get("ortu") for siswa in students):
+        sandi = generate_password_hash(password_awal_ortu())
+        for siswa in students:
+            siswa["sandi_ortu"] = sandi if siswa.get("ortu") else None
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -1283,8 +1516,10 @@ def import_siswa():
             "per_kelas": sorted(per_kelas.items()),
             "ubah": [item for item in plan if item["action"] == "ubah"][:30],
             "baru": [item for item in plan if item["action"] == "baru"][:30],
+            "ortu": len({item.get("ortu") for item in plan if item.get("ortu") and item["action"] != "lewati"}),
         },
         notes=notes,
+        password_awal=password_awal_ortu(),
     )
 
 @app.route('/import-siswa/simpan', methods=['POST'])
@@ -1307,7 +1542,401 @@ def simpan_import_siswa():
         conn.close()
         path.unlink(missing_ok=True)
     flash(f"Data siswa tahun ajaran {payload['ajaran']}/{payload['ajaran'] + 1} berhasil diimpor.", 'success')
+    try:
+        akun_baru, masalah = hubungkan_orang_tua(payload["plan"])
+    except Exception:
+        flash("Data siswa tersimpan, tetapi akun orang tua di Tahfidz belum terhubung. Coba unggah lagi.", "warning")
+    else:
+        if akun_baru:
+            flash(
+                f"{akun_baru} akun orang tua baru dibuat. Username adalah nama orang tua. "
+                f"Password awal sama dengan portal Tahfidz ({password_awal_ortu()}).",
+                "success",
+            )
+        if masalah:
+            flash(
+                "Nama ini sudah dipakai akun staf, jadi tidak dijadikan akun orang tua: " + ", ".join(masalah),
+                "warning",
+            )
     return redirect(url_for('import_siswa'))
+
+def cari_nama_guru(nama, daftar):
+    if not nama:
+        return None
+    kunci = name_key(nama)
+    for guru in daftar:
+        if name_key(guru["nama"]) == kunci or name_key(nama_dengan_gelar(guru["nama"], guru.get("gelar"))) == kunci:
+            return guru
+    return cocok_guru(nama, daftar)
+
+def muat_cetak_guru(cursor):
+    from portal.guru_akun import siapkan
+    siapkan()
+    cursor.execute("SELECT * FROM kelas")
+    daftar_kelas = sorted(cursor.fetchall(), key=lambda row: urut_kelas(row["nama_kelas"]))
+    cursor.execute(
+        "SELECT id, nama, urutan, gelar, jabatan, tugas FROM guru WHERE aktif = 1 ORDER BY urutan, nama"
+    )
+    daftar_guru = cursor.fetchall()
+    cursor.execute("""
+        SELECT gk.guru_id, gk.mapel, k.nama_kelas
+        FROM guru_kelas gk
+        JOIN kelas k ON k.id = gk.kelas_id
+    """)
+    mapel_grup = {}
+    for row in cursor.fetchall():
+        mapel_grup.setdefault(row["guru_id"], {}).setdefault(row["mapel"] or "", []).append(row["nama_kelas"])
+    cursor.execute("SELECT hari, urutan, guru_id FROM guru_piket")
+    piket = {(row["hari"], row["urutan"]): row["guru_id"] for row in cursor.fetchall()}
+    return daftar_guru, daftar_kelas, mapel_grup, piket
+
+def rencanakan_guru(cursor, baris, penugasan=None):
+    from portal.guru_akun import siapkan
+    siapkan()
+    cursor.execute("SELECT id, nama, gelar, jabatan, tugas, aktif FROM guru")
+    ada = cursor.fetchall()
+    cursor.execute("SELECT id, nama_kelas, wali_guru_id FROM kelas")
+    kelas_rows = cursor.fetchall()
+    kelas_ada = set()
+    wali_sekarang = {}
+    for row in kelas_rows:
+        kunci = normalize_class(row["nama_kelas"]) or row["nama_kelas"]
+        kelas_ada.add(kunci)
+        if row["wali_guru_id"]:
+            wali_sekarang[kunci] = row["wali_guru_id"]
+    cursor.execute("""
+        SELECT gk.guru_id, gk.mapel, k.nama_kelas
+        FROM guru_kelas gk
+        JOIN kelas k ON k.id = gk.kelas_id
+    """)
+    mapel_sekarang = {}
+    for row in cursor.fetchall():
+        kunci = normalize_class(row["nama_kelas"]) or row["nama_kelas"]
+        mapel_sekarang.setdefault(row["guru_id"], set()).add((normalize_name(row["mapel"])[:40], kunci))
+    cursor.execute("SELECT hari, urutan, guru_id FROM guru_piket")
+    piket_sekarang = {(row["hari"], row["urutan"]): row["guru_id"] for row in cursor.fetchall()}
+    terpakai = set()
+    sudah = set()
+    rencana = []
+    for item in baris:
+        kunci = name_key(item["nama"])
+        if kunci in sudah:
+            rencana.append({**item, "action": "lewati", "alasan": "Nama ini sudah ada di baris lain."})
+            continue
+        cocok = cocok_guru(item["nama"], [guru for guru in ada if guru["id"] not in terpakai])
+        if cocok:
+            terpakai.add(cocok["id"])
+            sudah.add(kunci)
+            sudah.add(name_key(cocok["nama"]))
+            berubah = (
+                (cocok["nama"] or "") != item["nama"]
+                or (cocok.get("gelar") or "") != item["gelar"]
+                or (cocok.get("jabatan") or "") != item["jabatan"]
+                or (cocok.get("tugas") or "") != item["tugas"]
+                or not cocok["aktif"]
+            )
+            rencana.append({**item, "action": "ubah" if berubah else "tetap", "id": cocok["id"]})
+        else:
+            sudah.add(kunci)
+            rencana.append({**item, "action": "baru"})
+
+    catatan = []
+    dilihat = set()
+
+    def catat(teks):
+        if teks not in dilihat:
+            dilihat.add(teks)
+            catatan.append(teks)
+
+    tidak_ada = set()
+    ubah_mapel = 0
+    for item in rencana:
+        if item.get("mapel") is None:
+            continue
+        bersih = []
+        for label, daftar in item["mapel"]:
+            kelas = []
+            for nama_kelas in daftar:
+                if nama_kelas in kelas_ada:
+                    kelas.append(nama_kelas)
+                else:
+                    tidak_ada.add(nama_kelas)
+            bersih.append([label, kelas])
+        item["mapel"] = bersih
+        if not item.get("id"):
+            continue
+        target = {(label, nama_kelas) for label, daftar in bersih for nama_kelas in daftar}
+        if target != mapel_sekarang.get(item["id"], set()):
+            ubah_mapel += 1
+            if item["action"] == "tetap":
+                item["action"] = "ubah"
+    for nama_kelas in sorted(tidak_ada, key=urut_kelas):
+        catat(f"Kelas {nama_kelas} tidak ada di database, jadi tidak disimpan.")
+
+    calon = ada + [
+        {"id": None, "nama": item["nama"]}
+        for item in rencana
+        if item["action"] != "lewati"
+    ]
+    if penugasan:
+        susunan = {"wali": penugasan.get("wali") or {}, "piket": penugasan.get("piket")}
+    else:
+        susunan = {"wali": None, "piket": None}
+        if any(item.get("wali") is not None for item in rencana):
+            wali = {}
+            for item in rencana:
+                if item["action"] == "lewati" or item.get("wali") is None:
+                    continue
+                for nama_kelas in item["wali"]:
+                    if nama_kelas in kelas_ada:
+                        wali[nama_kelas] = item["nama"]
+                    else:
+                        tidak_ada.add(nama_kelas)
+            dalam_file = {item["id"] for item in rencana if item.get("id")}
+            for nama_kelas, guru_id in wali_sekarang.items():
+                if guru_id in dalam_file and nama_kelas not in wali:
+                    wali[nama_kelas] = ""
+            susunan["wali"] = wali
+        if any(item.get("piket") is not None for item in rencana):
+            piket = {}
+            for item in rencana:
+                if item["action"] == "lewati" or item.get("piket") is None:
+                    continue
+                for hari, urutan in item["piket"]:
+                    piket[(int(hari), int(urutan))] = item["nama"]
+            dalam_file = {item["id"] for item in rencana if item.get("id")}
+            for kunci, guru_id in piket_sekarang.items():
+                if guru_id in dalam_file and kunci not in piket:
+                    piket[kunci] = ""
+            susunan["piket"] = [
+                {"hari": hari, "urutan": urutan, "nama": nama}
+                for (hari, urutan), nama in sorted(piket.items())
+            ]
+    for nama_kelas in sorted(tidak_ada, key=urut_kelas):
+        catat(f"Kelas {nama_kelas} tidak ada di database, jadi tidak disimpan.")
+
+    def tandai(guru_id):
+        for item in rencana:
+            if item["action"] == "tetap" and item.get("id") == guru_id:
+                item["action"] = "ubah"
+
+    ubah_wali = 0
+    if susunan.get("wali") is not None:
+        for nama_kelas, nama in list(susunan["wali"].items()):
+            if nama_kelas not in kelas_ada:
+                catat(f"Kelas {nama_kelas} tidak ada di database, jadi wali kelas tidak disimpan.")
+                susunan["wali"].pop(nama_kelas, None)
+                continue
+            guru = cari_nama_guru(nama, calon) if nama else None
+            if nama and guru is None:
+                catat(f"Wali kelas {nama_kelas} tidak dikenali dan tidak diubah.")
+                susunan["wali"].pop(nama_kelas, None)
+                continue
+            target_id = guru.get("id") if guru else None
+            if target_id != wali_sekarang.get(nama_kelas):
+                ubah_wali += 1
+                tandai(target_id)
+                tandai(wali_sekarang.get(nama_kelas))
+    ubah_piket = 0
+    if susunan.get("piket") is not None:
+        tetap = []
+        for slot in susunan["piket"]:
+            nama = slot.get("nama") or ""
+            guru = cari_nama_guru(nama, calon) if nama else None
+            if nama and guru is None:
+                catat("Ada nama guru piket yang tidak dikenali. Slot itu tidak diubah.")
+                continue
+            target_id = guru.get("id") if guru else None
+            kunci = (int(slot["hari"]), int(slot["urutan"]))
+            if target_id != piket_sekarang.get(kunci):
+                ubah_piket += 1
+                tandai(target_id)
+                tandai(piket_sekarang.get(kunci))
+            tetap.append({"hari": kunci[0], "urutan": kunci[1], "nama": nama})
+        susunan["piket"] = tetap
+    pakai = any(item.get("mapel") is not None for item in rencana) or bool(penugasan)
+    if not pakai:
+        susunan = None
+    ringkas = {"pakai": pakai, "mapel": ubah_mapel, "wali": ubah_wali, "piket": ubah_piket}
+    return rencana, catatan, susunan, ringkas
+
+def terapkan_guru(cursor, rencana):
+    cursor.execute("SELECT COALESCE(MAX(urutan), 0) AS urutan FROM guru")
+    urutan = cursor.fetchone()["urutan"] or 0
+    for item in rencana:
+        if item["action"] == "lewati":
+            continue
+        if item["action"] == "baru":
+            urutan += 1
+            cursor.execute(
+                """
+                INSERT INTO guru (nama, urutan, aktif, gelar, jabatan, tugas)
+                VALUES (%s, %s, 1, %s, %s, %s)
+                """,
+                (item["nama"], urutan, item["gelar"] or None, item["jabatan"] or None, item["tugas"] or None),
+            )
+            item["id"] = cursor.lastrowid
+        else:
+            cursor.execute(
+                """
+                UPDATE guru
+                SET nama = %s, aktif = 1, gelar = %s, jabatan = %s, tugas = %s
+                WHERE id = %s
+                """,
+                (item["nama"], item["gelar"] or None, item["jabatan"] or None, item["tugas"] or None, item["id"]),
+            )
+
+def terapkan_penugasan(cursor, rencana, penugasan):
+    cursor.execute("SELECT id, nama_kelas FROM kelas")
+    kelas_id = {}
+    for row in cursor.fetchall():
+        kelas_id[normalize_class(row["nama_kelas"]) or row["nama_kelas"]] = row["id"]
+    cursor.execute("SELECT id, nama, gelar FROM guru WHERE aktif = 1")
+    daftar = cursor.fetchall()
+    catatan = []
+    dilihat = set()
+
+    def catat(teks):
+        if teks not in dilihat:
+            dilihat.add(teks)
+            catatan.append(teks)
+
+    for item in rencana:
+        if item["action"] == "lewati" or item.get("mapel") is None or not item.get("id"):
+            continue
+        cursor.execute("DELETE FROM guru_kelas WHERE guru_id = %s", (item["id"],))
+        sudah = set()
+        for label, daftar_kelas in item["mapel"] or []:
+            for nama_kelas in daftar_kelas:
+                kid = kelas_id.get(nama_kelas)
+                kunci = (item["id"], kid, label)
+                if not kid or kunci in sudah:
+                    continue
+                sudah.add(kunci)
+                cursor.execute(
+                    "INSERT INTO guru_kelas (guru_id, kelas_id, mapel) VALUES (%s, %s, %s)",
+                    (item["id"], kid, label),
+                )
+    if not penugasan:
+        return catatan
+    if penugasan.get("wali") is not None:
+        for nama_kelas, nama in penugasan["wali"].items():
+            kid = kelas_id.get(nama_kelas)
+            if not kid:
+                continue
+            guru = cari_nama_guru(nama, daftar) if nama else None
+            if nama and guru is None:
+                catat(f"Wali kelas {nama_kelas} tidak dikenali dan tidak diubah.")
+                continue
+            cursor.execute(
+                "UPDATE kelas SET wali_guru_id = %s WHERE id = %s",
+                (guru["id"] if guru else None, kid),
+            )
+    if penugasan.get("piket") is not None:
+        for slot in penugasan["piket"]:
+            nama = slot.get("nama") or ""
+            guru = cari_nama_guru(nama, daftar) if nama else None
+            if nama and guru is None:
+                catat("Ada nama guru piket yang tidak dikenali. Slot itu tidak diubah.")
+                continue
+            if guru:
+                cursor.execute(
+                    """
+                    INSERT INTO guru_piket (hari, urutan, guru_id) VALUES (%s, %s, %s)
+                    ON DUPLICATE KEY UPDATE guru_id = VALUES(guru_id)
+                    """,
+                    (int(slot["hari"]), int(slot["urutan"]), guru["id"]),
+                )
+            else:
+                cursor.execute(
+                    "DELETE FROM guru_piket WHERE hari = %s AND urutan = %s",
+                    (int(slot["hari"]), int(slot["urutan"])),
+                )
+    return catatan
+
+@app.route('/import-guru/blanko')
+def unduh_blanko_guru():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    berkas = excel_data_guru(*muat_cetak_guru(cursor))
+    conn.close()
+    return send_file(
+        berkas,
+        as_attachment=True,
+        download_name="blanko_data_guru.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+@app.route('/import-guru', methods=['GET', 'POST'])
+def import_guru():
+    if request.method == 'GET':
+        return render_template('import_guru.html', preview=None)
+    upload = request.files.get('berkas')
+    if upload is None or not upload.filename.lower().endswith(('.xlsx', '.xlsm')):
+        flash('Pilih file Excel guru (.xlsx).', 'danger')
+        return redirect(url_for('import_guru'))
+    from import_excel import parse_guru
+    guru, notes, penugasan = parse_guru(upload)
+    if not guru:
+        flash('Tidak ada guru yang terbaca. Unggah file hasil Cetak Excel dari menu Guru.', 'danger')
+        return render_template('import_guru.html', preview=None, notes=notes)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    rencana, catatan, susunan, ringkas = rencanakan_guru(cursor, guru, penugasan)
+    conn.close()
+    token = secrets.token_urlsafe(18)
+    (import_tmp_dir() / f"guru-{token}.json").write_text(
+        json.dumps({"jenis": "guru", "plan": rencana, "penugasan": susunan}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    counts = {key: sum(1 for item in rencana if item["action"] == key) for key in ("baru", "ubah", "tetap", "lewati")}
+    return render_template(
+        'import_guru.html',
+        preview={
+            "token": token,
+            "counts": counts,
+            "ubah": [item for item in rencana if item["action"] == "ubah"][:40],
+            "baru": [item for item in rencana if item["action"] == "baru"][:40],
+            "ringkas": ringkas,
+        },
+        notes=notes + catatan,
+    )
+
+@app.route('/import-guru/simpan', methods=['POST'])
+def simpan_import_guru():
+    token = request.form.get('token', '')
+    path = import_tmp_dir() / f"guru-{token}.json"
+    if not token or not path.is_file() or path.parent != import_tmp_dir():
+        flash('Pratinjau impor sudah tidak berlaku. Unggah file lagi.', 'danger')
+        return redirect(url_for('import_guru'))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("jenis") != "guru":
+        path.unlink(missing_ok=True)
+        flash('Pratinjau impor sudah tidak berlaku. Unggah file lagi.', 'danger')
+        return redirect(url_for('import_guru'))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        terapkan_guru(cursor, payload["plan"])
+        catatan = terapkan_penugasan(cursor, payload["plan"], payload.get("penugasan"))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+        path.unlink(missing_ok=True)
+    from portal.guru_akun import SANDI_AWAL, siapkan
+    siapkan()
+    baru = sum(1 for item in payload["plan"] if item["action"] == "baru")
+    flash('Data guru berhasil diimpor.', 'success')
+    if any(item.get("mapel") is not None for item in payload["plan"]) or payload.get("penugasan"):
+        flash('Kelas yang diampu, wali kelas, dan jadwal piket ikut disimpan.', 'success')
+    if baru:
+        flash(f"{baru} guru baru ditambahkan. Username adalah nama guru. Password awal {SANDI_AWAL}.", 'success')
+    for teks in catatan:
+        flash(teks, 'warning')
+    return redirect(url_for('guru'))
 
 @app.route('/tata-tertib', methods=['GET', 'POST'])
 def tata_tertib():
@@ -1377,10 +2006,143 @@ def tata_tertib():
         selected_kelas=kelas_id,
     )
 
+def excel_data_guru(daftar_guru, daftar_kelas, mapel_grup, piket_terpilih):
+    from io import BytesIO
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wali = {}
+    for kelas in daftar_kelas:
+        if kelas.get("wali_guru_id"):
+            wali.setdefault(kelas["wali_guru_id"], []).append(kelas["nama_kelas"])
+    for guru_id in wali:
+        wali[guru_id] = sorted(wali[guru_id], key=urut_kelas)
+    piket = {}
+    for (hari, urutan), guru_id in piket_terpilih.items():
+        if hari < len(NAMA_HARI):
+            piket.setdefault(guru_id, []).append(f"{NAMA_HARI[hari]} {urutan}")
+    nama_guru = {guru["id"]: nama_dengan_gelar(guru["nama"], guru.get("gelar")) for guru in daftar_guru}
+
+    buku = Workbook()
+    lembar = buku.active
+    lembar.title = "Data Guru"
+    judul = (
+        "No", "Nama Guru", "Gelar", "Jabatan", "Tugas",
+        "Kelas yang Diampu", "Mata Pelajaran", "Wali Kelas", "Jadwal Piket",
+    )
+    lembar.append(judul)
+    for sel in lembar[1]:
+        sel.font = Font(bold=True, color="FFFFFF")
+        sel.fill = PatternFill("solid", fgColor="1F7A4D")
+        sel.alignment = Alignment(wrap_text=True, vertical="center")
+    for nomor, guru in enumerate(daftar_guru, start=1):
+        kelompok = mapel_grup.get(guru["id"], {})
+        kelas_nama = sorted(
+            {kelas for daftar in kelompok.values() for kelas in daftar},
+            key=urut_kelas,
+        )
+        mapel = []
+        for nama_mapel, daftar in sorted(kelompok.items()):
+            label = nama_mapel or "Mapel"
+            mapel.append(f"{label}: {', '.join(sorted(daftar, key=urut_kelas))}")
+        lembar.append((
+            nomor,
+            nama_dengan_gelar(guru["nama"], guru.get("gelar")),
+            guru.get("gelar") or "",
+            guru.get("jabatan") or "",
+            guru.get("tugas") or "",
+            ", ".join(kelas_nama),
+            "; ".join(mapel),
+            ", ".join(wali.get(guru["id"], [])),
+            ", ".join(piket.get(guru["id"], [])),
+        ))
+    for indeks, lebar in enumerate((6, 42, 18, 22, 36, 28, 36, 18, 28), start=1):
+        lembar.column_dimensions[get_column_letter(indeks)].width = lebar
+    for baris in lembar.iter_rows(min_row=2, max_col=9):
+        for sel in baris:
+            sel.alignment = Alignment(wrap_text=True, vertical="top")
+    lembar.auto_filter.ref = f"A1:I{lembar.max_row}"
+    lembar.freeze_panes = "A2"
+
+    tugas = buku.create_sheet("Penugasan")
+    tugas["A1"] = "Wali kelas"
+    tugas["A1"].font = Font(bold=True, size=14)
+    tugas.append(())
+    tugas.append(("Kelas", "Wali kelas"))
+    for sel in tugas[3]:
+        sel.font = Font(bold=True, color="FFFFFF")
+        sel.fill = PatternFill("solid", fgColor="1F7A4D")
+    for kelas in daftar_kelas:
+        tugas.append((kelas["nama_kelas"], nama_guru.get(kelas.get("wali_guru_id"), "")))
+    mulai_piket = tugas.max_row + 2
+    tugas.cell(mulai_piket, 1, "Guru piket").font = Font(bold=True, size=14)
+    kepala = mulai_piket + 1
+    for kolom, teks in enumerate(("Hari", "Piket 1", "Piket 2", "Piket 3"), start=1):
+        sel = tugas.cell(kepala, kolom, teks)
+        sel.font = Font(bold=True, color="FFFFFF")
+        sel.fill = PatternFill("solid", fgColor="1F7A4D")
+    for hari in range(5):
+        tugas.append((
+            NAMA_HARI[hari],
+            nama_guru.get(piket_terpilih.get((hari, 1)), ""),
+            nama_guru.get(piket_terpilih.get((hari, 2)), ""),
+            nama_guru.get(piket_terpilih.get((hari, 3)), ""),
+        ))
+    for indeks, lebar in enumerate((16, 42, 42, 42), start=1):
+        tugas.column_dimensions[get_column_letter(indeks)].width = lebar
+
+    simpanan = BytesIO()
+    buku.save(simpanan)
+    simpanan.seek(0)
+    return simpanan
+
+
+@app.route('/guru/cetak')
+def cetak_guru():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    berkas = excel_data_guru(*muat_cetak_guru(cursor))
+    conn.close()
+    return send_file(
+        berkas,
+        as_attachment=True,
+        download_name="data_guru_kelas_penugasan.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+def admin_presensi():
+    try:
+        from sso import baca
+        data = baca(request)
+    except Exception:
+        data = None
+    if data and data.get("role") == "admin":
+        return True
+    return bool(session.get("masuk") and not session.get("dari_portal"))
+
+
 @app.route('/guru', methods=['GET', 'POST'])
 def guru():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    if request.method == "POST" and request.form.get("aksi") == "reset_akun":
+        if not admin_presensi():
+            flash("Hanya admin yang dapat mereset akun guru.", "danger")
+        else:
+            from portal.guru_akun import SANDI_AWAL, reset as reset_akun_guru
+
+            guru_id = request.form.get("guru_id", "")
+            nama = reset_akun_guru(int(guru_id)) if str(guru_id).isdigit() else None
+            if nama:
+                flash(f"Password akun {nama} direset menjadi {SANDI_AWAL}.", "success")
+            else:
+                flash("Guru tidak ditemukan.", "danger")
+        conn.close()
+        return redirect(url_for("guru"))
+
     if request.method == 'POST' and request.form.get('aksi') == 'piket':
         cursor.execute("DELETE FROM guru_piket")
         for hari in range(5):
@@ -1417,9 +2179,22 @@ def guru():
 
     if request.method == 'POST':
         for guru_id in request.form.getlist('guru_id'):
-            nama = request.form.get(f'nama_{guru_id}', '').strip()[:120]
+            nama = " ".join(request.form.get(f'nama_{guru_id}', '').split())
             if nama:
-                cursor.execute("UPDATE guru SET nama = %s WHERE id = %s", (nama, guru_id))
+                cursor.execute("SELECT gelar FROM guru WHERE id = %s", (guru_id,))
+                ada = cursor.fetchone()
+                gelar_lama = (ada or {}).get("gelar") or ""
+                dasar = lepaskan_gelar(nama, gelar_lama)
+                if gelar_lama and dasar != nama:
+                    nama_simpan, gelar_simpan = dasar[:120], gelar_lama
+                elif gelar_lama:
+                    nama_simpan, gelar_simpan = nama[:120], ""
+                else:
+                    nama_simpan, gelar_simpan = nama[:120], ""
+                cursor.execute(
+                    "UPDATE guru SET nama = %s, gelar = %s WHERE id = %s",
+                    (nama_simpan, gelar_simpan or None, guru_id),
+                )
             cursor.execute("SELECT kelas_id, mapel FROM guru_kelas WHERE guru_id = %s", (guru_id,))
             mapel_lama = {}
             for row in cursor.fetchall():
@@ -1444,7 +2219,11 @@ def guru():
 
     cursor.execute("SELECT * FROM kelas")
     daftar_kelas = sorted(cursor.fetchall(), key=lambda row: urut_kelas(row["nama_kelas"]))
-    cursor.execute("SELECT id, nama, urutan FROM guru WHERE aktif = 1 ORDER BY urutan, nama")
+    from portal.guru_akun import siapkan
+    siapkan()
+    cursor.execute(
+        "SELECT id, nama, urutan, gelar, jabatan, tugas FROM guru WHERE aktif = 1 ORDER BY urutan, nama"
+    )
     daftar_guru = cursor.fetchall()
     cursor.execute("""
         SELECT gk.guru_id, gk.kelas_id, gk.mapel, k.nama_kelas
@@ -1457,6 +2236,7 @@ def guru():
         terpilih.setdefault(row["guru_id"], set()).add(row["kelas_id"])
         mapel_grup.setdefault(row["guru_id"], {}).setdefault(row["mapel"] or "Mapel", []).append(row["nama_kelas"])
     for item in daftar_guru:
+        item["nama_lengkap"] = nama_dengan_gelar(item["nama"], item.get("gelar"))
         item["kelas_ids"] = terpilih.get(item["id"], set())
         item["mapel"] = [
             {"nama": mapel, "kelas": ", ".join(sorted(nama_kelas, key=urut_kelas))}
@@ -1464,6 +2244,8 @@ def guru():
         ]
     cursor.execute("SELECT hari, urutan, guru_id FROM guru_piket")
     piket_terpilih = {(row["hari"], row["urutan"]): row["guru_id"] for row in cursor.fetchall()}
+    from portal.guru_akun import SANDI_AWAL, id_piket
+
     conn.close()
     return render_template(
         'guru.html',
@@ -1471,6 +2253,9 @@ def guru():
         kelas_list=daftar_kelas,
         hari_piket=NAMA_HARI[:5],
         piket_terpilih=piket_terpilih,
+        piket_ids=id_piket(),
+        boleh_reset=admin_presensi(),
+        sandi_guru=SANDI_AWAL,
     )
 
 def simpan_hasil_mapel(cursor, kelas_id, tanggal, mapel, materi, tugas, ulangan, ulangan_ket):
@@ -1490,18 +2275,67 @@ def simpan_hasil_mapel(cursor, kelas_id, tanggal, mapel, materi, tugas, ulangan,
             ulangan_ket = VALUES(ulangan_ket)
     """, (kelas_id, tanggal, mapel, materi, tugas, ulangan, ulangan_ket))
 
+@app.route("/ganti-password", methods=["GET", "POST"])
+def ganti_password_guru():
+    if not session.get("guru_id"):
+        flash("Halaman ini untuk akun guru.", "danger")
+        return redirect(url_for("index"))
+    if request.method == "POST":
+        baru = request.form.get("password_baru") or ""
+        ulang = request.form.get("password_konfirmasi") or ""
+        if baru != ulang:
+            flash("Konfirmasi password tidak cocok.", "danger")
+        else:
+            from portal.guru_akun import ganti_sandi
+
+            pesan = ganti_sandi(session.get("guru_id"), request.form.get("password_lama") or "", baru)
+            if pesan:
+                flash(pesan, "danger")
+            else:
+                flash("Password berhasil diubah. Pakai password baru saat masuk lagi.", "success")
+                return redirect(url_for("ganti_password_guru"))
+    return render_template("ganti_password_guru.html")
+
+
+def guru_yang_mengisi():
+    if session.get("guru_id") and (
+        session.get("guru_piket") or session.get("guru_bk") or session.get("guru_pengampu")
+    ):
+        return session.get("guru_id")
+    return None
+
+
 @app.route('/hasil-belajar', methods=['GET', 'POST'])
 def hasil_belajar():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT id, nama_kelas FROM kelas")
+    guru_id = guru_yang_mengisi()
+    if guru_id:
+        cursor.execute(
+            """
+            SELECT DISTINCT k.id, k.nama_kelas
+            FROM kelas k
+            JOIN guru_kelas gk ON gk.kelas_id = k.id
+            WHERE gk.guru_id = %s AND TRIM(gk.mapel) <> ''
+            """,
+            (guru_id,),
+        )
+    else:
+        cursor.execute("SELECT id, nama_kelas FROM kelas")
     daftar_kelas = sorted(cursor.fetchall(), key=lambda row: urut_kelas(row["nama_kelas"]))
+    kelas_boleh = {str(row["id"]) for row in daftar_kelas} if guru_id else None
     tanggal = request.values.get("tanggal") or datetime.now().strftime("%Y-%m-%d")
     try:
         datetime.strptime(tanggal, "%Y-%m-%d")
     except ValueError:
         tanggal = datetime.now().strftime("%Y-%m-%d")
     kelas_id = request.values.get("kelas_id", "")
+    if guru_id and kelas_id and kelas_boleh is not None and kelas_id not in kelas_boleh:
+        kelas_id = ""
+    if guru_id and request.method == "POST" and request.form.get("aksi") in {"reset_ortu", "password_awal"}:
+        conn.close()
+        flash("Akun orang tua diubah oleh staf.", "danger")
+        return redirect(url_for("hasil_belajar", kelas_id=kelas_id, tanggal=tanggal))
     if request.method == "POST" and request.form.get("aksi") == "reset_ortu":
         siswa_id = request.form.get("siswa_id", "")
         if str(siswa_id).isdigit():
@@ -1540,14 +2374,24 @@ def hasil_belajar():
         return redirect(url_for("hasil_belajar", kelas_id=kelas_id, tanggal=tanggal))
     if request.method == "POST":
         kelas_id = request.form.get("kelas_id", "")
-        if not str(kelas_id).isdigit():
-            flash("Pilih kelas dulu.", "danger")
+        if not str(kelas_id).isdigit() or (kelas_boleh is not None and kelas_id not in kelas_boleh):
+            flash("Pilih kelas yang Anda ampu." if guru_id else "Pilih kelas dulu.", "danger")
             conn.close()
             return redirect(url_for("hasil_belajar", tanggal=tanggal))
+        milik = None
+        if guru_id:
+            cursor.execute(
+                """
+                SELECT DISTINCT TRIM(mapel) AS mapel FROM guru_kelas
+                WHERE guru_id = %s AND kelas_id = %s AND TRIM(mapel) <> ''
+                """,
+                (guru_id, kelas_id),
+            )
+            milik = {row["mapel"].casefold() for row in cursor.fetchall()}
         mapel_list = request.form.getlist("mapel")
         for indeks, mapel in enumerate(mapel_list):
             mapel = mapel.strip()[:60]
-            if not mapel:
+            if not mapel or (milik is not None and mapel.casefold() not in milik):
                 continue
             materi = request.form.get(f"materi_{indeks}", "").strip()[:800]
             tugas = request.form.get(f"tugas_{indeks}", "").strip()[:400]
@@ -1559,9 +2403,9 @@ def hasil_belajar():
         tugas_baru = request.form.get("tugas_baru", "").strip()[:400]
         ulangan_baru = 1 if request.form.get("ulangan_baru") else 0
         ulangan_ket_baru = request.form.get("ulangan_ket_baru", "").strip()[:200] if ulangan_baru else ""
-        if mapel_baru:
+        if mapel_baru and not guru_id:
             simpan_hasil_mapel(cursor, kelas_id, tanggal, mapel_baru, materi_baru, tugas_baru, ulangan_baru, ulangan_ket_baru)
-        for siswa_id in request.form.getlist("siswa_id"):
+        for siswa_id in request.form.getlist("siswa_id") if not guru_id else []:
             if not str(siswa_id).isdigit():
                 continue
             catatan = request.form.get(f"catatan_{siswa_id}", "").strip()[:400]
@@ -1589,16 +2433,18 @@ def hasil_belajar():
             FROM guru_kelas gk
             JOIN guru g ON g.id = gk.guru_id AND g.aktif = 1
             WHERE gk.kelas_id = %s AND gk.mapel <> ''
+        """ + (" AND gk.guru_id = %s" if guru_id else "") + """
             GROUP BY gk.mapel
             ORDER BY gk.mapel
-        """, (kelas_id,))
+        """, (kelas_id, guru_id) if guru_id else (kelas_id,))
         jadwal = {row["mapel"]: row["guru"] for row in cursor.fetchall()}
         cursor.execute(
             "SELECT mapel, materi, tugas, ulangan, ulangan_ket FROM hasil_belajar WHERE kelas_id = %s AND tanggal = %s",
             (kelas_id, tanggal),
         )
         tersimpan = {row["mapel"]: row for row in cursor.fetchall()}
-        for mapel in list(jadwal) + [nama for nama in tersimpan if nama not in jadwal]:
+        tambahan = [] if guru_id else [nama for nama in tersimpan if nama not in jadwal]
+        for mapel in list(jadwal) + tambahan:
             isi = tersimpan.get(mapel) or {}
             mapel_isi.append({
                 "mapel": mapel,
@@ -1608,23 +2454,24 @@ def hasil_belajar():
                 "ulangan": isi.get("ulangan", 0),
                 "ulangan_ket": isi.get("ulangan_ket", ""),
             })
-        cursor.execute("""
-            SELECT s.id, s.nis, s.nama, s.kode_ortu, s.username_ortu, COALESCE(c.catatan, '') AS catatan
-            FROM siswa s
-            LEFT JOIN catatan_ortu c ON c.siswa_id = s.id AND c.tanggal = %s
-            WHERE s.kelas_id = %s AND s.tahun = %s AND s.aktif = 1
-            ORDER BY s.nama
-        """, (tanggal, kelas_id, tahun_ajaran_dari(tanggal)))
-        siswa_list = cursor.fetchall()
-        cursor.execute("SELECT kode_ortu FROM siswa WHERE kode_ortu IS NOT NULL")
-        terpakai = {row["kode_ortu"] for row in cursor.fetchall()}
-        for siswa in siswa_list:
-            if siswa["kode_ortu"]:
-                continue
-            kode = kode_ortu_baru(terpakai)
-            cursor.execute("UPDATE siswa SET kode_ortu = %s WHERE id = %s", (kode, siswa["id"]))
-            siswa["kode_ortu"] = kode
-        conn.commit()
+        if not guru_id:
+            cursor.execute("""
+                SELECT s.id, s.nis, s.nama, s.kode_ortu, s.username_ortu, COALESCE(c.catatan, '') AS catatan
+                FROM siswa s
+                LEFT JOIN catatan_ortu c ON c.siswa_id = s.id AND c.tanggal = %s
+                WHERE s.kelas_id = %s AND s.tahun = %s AND s.aktif = 1
+                ORDER BY s.nama
+            """, (tanggal, kelas_id, tahun_ajaran_dari(tanggal)))
+            siswa_list = cursor.fetchall()
+            cursor.execute("SELECT kode_ortu FROM siswa WHERE kode_ortu IS NOT NULL")
+            terpakai = {row["kode_ortu"] for row in cursor.fetchall()}
+            for siswa in siswa_list:
+                if siswa["kode_ortu"]:
+                    continue
+                kode = kode_ortu_baru(terpakai)
+                cursor.execute("UPDATE siswa SET kode_ortu = %s WHERE id = %s", (kode, siswa["id"]))
+                siswa["kode_ortu"] = kode
+            conn.commit()
     conn.close()
     return render_template(
         "hasil_belajar.html",
@@ -1634,6 +2481,7 @@ def hasil_belajar():
         mapel_isi=mapel_isi,
         siswa_list=siswa_list,
         halaman_ortu=url_for("ortu", _external=True),
+        hanya_mapel=bool(guru_id),
     )
 
 @app.route("/pengumuman", methods=["GET", "POST"])
@@ -1776,24 +2624,11 @@ def ortu_ulangan():
     data["daftar_ulangan"] = [row for row in data["pelajaran"] if row["ulangan"]]
     return render_template("ortu_ulangan.html", **data)
 
-@app.route("/ortu/pengumuman")
-def ortu_pengumuman():
-    if not session.get("ortu_id"):
-        return redirect(url_for("login"))
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT s.nama, k.nama_kelas, s.kelas_id
-        FROM siswa s
-        JOIN kelas k ON k.id = s.kelas_id
-        WHERE s.id = %s AND s.aktif = 1
-    """, (session["ortu_id"],))
-    siswa = cursor.fetchone()
-    if siswa is None:
-        conn.close()
-        session.pop("ortu_id", None)
-        return redirect(url_for("login"))
-    cursor.execute("""
+def _pengumuman_untuk(cursor, kelas_ids):
+    if not kelas_ids:
+        return []
+    tanda = ", ".join(["%s"] * len(kelas_ids))
+    cursor.execute(f"""
         SELECT p.tanggal, p.judul, p.isi,
                GROUP_CONCAT(DISTINCT k.nama_kelas ORDER BY k.nama_kelas SEPARATOR ', ') AS nama_kelas
         FROM pengumuman p
@@ -1803,22 +2638,66 @@ def ortu_pengumuman():
             NOT EXISTS (SELECT 1 FROM pengumuman_kelas x WHERE x.pengumuman_id = p.id)
             AND p.kelas_id IS NULL
         )
-        OR p.kelas_id = %s
+        OR p.kelas_id IN ({tanda})
         OR EXISTS (
             SELECT 1 FROM pengumuman_kelas y
-            WHERE y.pengumuman_id = p.id AND y.kelas_id = %s
+            WHERE y.pengumuman_id = p.id AND y.kelas_id IN ({tanda})
         )
         GROUP BY p.id, p.tanggal, p.judul, p.isi
         ORDER BY p.tanggal DESC, p.id DESC
         LIMIT 40
-    """, (siswa["kelas_id"], siswa["kelas_id"]))
-    daftar = cursor.fetchall()
+    """, (*kelas_ids, *kelas_ids))
+    return cursor.fetchall()
+
+@app.route("/ortu/pengumuman")
+def ortu_pengumuman():
+    siswa_list = keluarga_ortu()
+    if not siswa_list and not session.get("ortu_portal"):
+        return redirect(url_for("login"))
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    daftar = _pengumuman_untuk(cursor, [siswa["kelas_id"] for siswa in siswa_list])
     conn.close()
-    return render_template("ortu_pengumuman.html", siswa=siswa, daftar=daftar)
+    siswa = siswa_list[0] if siswa_list else None
+    return render_template("ortu_pengumuman.html", siswa=siswa, siswa_list=siswa_list, daftar=daftar)
+
+@app.route("/ortu/hasil-belajar")
+def ortu_hasil():
+    siswa_list = keluarga_ortu()
+    if not siswa_list and not session.get("ortu_portal"):
+        return redirect(url_for("login"))
+    tanggal = request.args.get("tanggal") or datetime.now().strftime("%Y-%m-%d")
+    try:
+        datetime.strptime(tanggal, "%Y-%m-%d")
+    except ValueError:
+        tanggal = datetime.now().strftime("%Y-%m-%d")
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    for siswa in siswa_list:
+        cursor.execute("""
+            SELECT mapel, materi, tugas, ulangan, ulangan_ket FROM hasil_belajar
+            WHERE kelas_id = %s AND tanggal = %s AND (materi <> '' OR tugas <> '' OR ulangan = 1)
+            ORDER BY mapel
+        """, (siswa["kelas_id"], tanggal))
+        siswa["pelajaran"] = cursor.fetchall()
+    conn.close()
+    return render_template(
+        "ortu_hasil.html",
+        siswa_list=siswa_list,
+        tanggal=tanggal,
+        hari_tanggal=label_hari(tanggal),
+    )
 
 @app.route("/ortu/keluar", methods=["POST"])
 def ortu_keluar():
+    dari_portal = bool(session.get("ortu_portal") or session.get("dari_portal"))
     session.pop("ortu_id", None)
+    session.pop("ortu_portal", None)
+    session.pop("ortu_nama", None)
+    session.pop("ikut_tahfidz", None)
+    session.pop("dari_portal", None)
+    if dari_portal:
+        return redirect("/logout")
     return redirect(url_for("login"))
 
 if __name__ == '__main__':

@@ -47,6 +47,18 @@ def boleh_data(data, portal):
         return True
     if data.get("role") == "orang_tua":
         return portal == "tahfidz"
+    if data.get("role") == "guru_pengampu":
+        return portal == "presensi"
+    if data.get("role") == "guru_bk":
+        return portal == "bk"
+    if data.get("role") == "guru_piket":
+        if portal == "presensi":
+            return True
+        if portal == "bk":
+            from portal.guru_akun import mengajar_bk
+
+            return mengajar_bk(data.get("id"))
+        return False
     from portal.akun import akses_username
 
     return portal in akses_username(data.get("username") or "")

@@ -19,6 +19,11 @@
       </div>
       <div class="aksi">
         {% if session.role == 'admin' %}
+        <form method="post" action="{{ url_for('atur_rawat') }}">
+          <input type="hidden" name="token" value="{{ rawat_token }}">
+          <input type="hidden" name="nyala" value="{{ '0' if rawat else '1' }}">
+          <button class="tombol{% if rawat %} rawat-nyala{% endif %}" type="submit">{{ 'Matikan maintenance' if rawat else 'Maintenance' }}</button>
+        </form>
         <a class="keluar" href="{{ url_for('pengguna') }}">Pengguna</a>
         <a class="keluar" href="{{ url_for('cadangan') }}">Cadangan</a>
         {% endif %}
@@ -30,6 +35,9 @@
       <div class="flash {{ jenis }}">{{ pesan }}</div>
       {% endfor %}
     {% endwith %}
+    {% if session.role == 'admin' and rawat %}
+    <p class="peringatan">Maintenance sedang aktif. Presensi, eRapor, Tahfidz, Rapor BK, dan Inventaris menampilkan tulisan maintenance.</p>
+    {% endif %}
     <p class="sapa">Selamat datang, <strong>{{ session.nama }}</strong>. Pilih portal yang akan dibuka.</p>
     {% if not modul_list %}
     <p class="sapa">Belum ada portal yang dibuka untuk akun ini. Minta admin mencentang portal pada menu Pengguna.</p>

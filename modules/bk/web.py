@@ -48,10 +48,16 @@ def create_app():
                 return jsonify(error="Akun ini tidak dapat membuka Rapor BK."), 403
             return __import__("flask").redirect("/?akses=bk")
         if data and data.get("role") != "admin" and request.method not in {"GET", "HEAD", "OPTIONS"}:
-            if request.path.startswith("/api/"):
-                return jsonify(error="Perubahan data hanya dapat dilakukan admin."), 403
-            from sso import cegah_ubah
-            return cegah_ubah(request)
+            boleh_tulis = data.get("role") == "guru_bk"
+            if data.get("role") == "guru_piket":
+                from portal.guru_akun import mengajar_bk
+
+                boleh_tulis = mengajar_bk(data.get("id"))
+            if not boleh_tulis:
+                if request.path.startswith("/api/"):
+                    return jsonify(error="Perubahan data hanya dapat dilakukan admin."), 403
+                from sso import cegah_ubah
+                return cegah_ubah(request)
         if data:
             return None
         if request.path.startswith("/api/"):

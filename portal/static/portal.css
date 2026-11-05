@@ -148,6 +148,7 @@ button {
   padding: 10px 14px;
 }
 .tombol.lebar { width: 100%; }
+.tombol.rawat-nyala { background: #9a7424; }
 .peringatan {
   background: #fff6e8;
   color: #7a4e00;
@@ -170,6 +171,8 @@ button {
 .tabel { width: 100%; border-collapse: collapse; }
 .tabel th, .tabel td { text-align: left; padding: 10px 8px; border-top: 1px solid var(--garis); vertical-align: middle; }
 .tabel th { color: var(--redup); font-size: 0.85rem; font-weight: 700; }
+.tabel form { margin: 0; }
+.tabel button.tombol { width: auto; margin-top: 0; }
 .lencana {
   display: inline-block;
   margin-left: 6px;

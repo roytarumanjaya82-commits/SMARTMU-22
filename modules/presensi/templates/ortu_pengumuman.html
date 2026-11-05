@@ -4,10 +4,14 @@
 <article class="laporan">
     <div class="text-center mb-3">
         <div class="fw-bold">SMP MUHAMMADIYAH 22 SETIABUDI PAMULANG</div>
-        <div class="small text-muted">Pengumuman untuk kelas {{ siswa.nama_kelas }}</div>
+        <div class="small text-muted">Pengumuman untuk orang tua</div>
     </div>
-    <h1 class="h4 fw-bold">PENGUMUMAN KEGIATAN</h1>
-    <p>Siswa: {{ siswa.nama }} · Kelas {{ siswa.nama_kelas }}</p>
+    <h1 class="h4 fw-bold">PENGUMUMAN</h1>
+    {% if siswa_list %}
+    <p>Siswa: {% for anak in siswa_list %}{{ anak.nama }} · Kelas {{ anak.nama_kelas }}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+    {% else %}
+    <p class="text-muted">Belum ada siswa yang terhubung ke akun ini. Unggah blanko siswa beserta nama orang tua.</p>
+    {% endif %}
     {% for item in daftar %}
     <section class="border-top pt-3 mt-3">
         <div class="small text-muted">{{ item.tanggal }}{% if item.nama_kelas %} · {{ item.nama_kelas }}{% else %} · Semua kelas{% endif %}</div>

@@ -1,0 +1,34 @@
+{% extends 'base_ortu.html' %}
+{% block judul %}Hasil belajar{% endblock %}
+{% block content %}
+<form method="GET" action="/ortu/hasil-belajar" class="mb-3">
+    <label class="form-label fw-bold" for="tanggal">Tanggal laporan</label>
+    <input class="form-control" id="tanggal" type="date" name="tanggal" value="{{ tanggal }}" onchange="this.form.submit()">
+</form>
+<article class="laporan">
+    <div class="text-center mb-3">
+        <div class="fw-bold">SMP MUHAMMADIYAH 22 SETIABUDI PAMULANG</div>
+        <div class="small text-muted">Hasil belajar</div>
+    </div>
+    <h1 class="h4 fw-bold">HASIL BELAJAR</h1>
+    <p class="fw-bold">Hari/Tanggal: {{ hari_tanggal }}</p>
+    {% if not siswa_list %}
+    <p class="text-muted">Belum ada siswa yang terhubung ke akun ini. Unggah blanko siswa beserta nama orang tua.</p>
+    {% endif %}
+    {% for siswa in siswa_list %}
+    <h2>{{ siswa.nama }} · Kelas {{ siswa.nama_kelas }}</h2>
+    {% if not siswa.pelajaran %}
+    <p class="text-muted">Belum dilaporkan.</p>
+    {% else %}
+    {% for item in siswa.pelajaran %}
+    <p>
+        <b>{{ item.mapel }}.</b>
+        {% if item.materi %}Materi: {{ item.materi }}{% endif %}
+        {% if item.tugas %} Tugas: {{ item.tugas }}{% endif %}
+        {% if item.ulangan %} Ulangan{% if item.ulangan_ket %}: {{ item.ulangan_ket }}{% endif %}{% endif %}
+    </p>
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+</article>
+{% endblock %}

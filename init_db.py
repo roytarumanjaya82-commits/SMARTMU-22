@@ -71,6 +71,12 @@ def siapkan_portal(cur):
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )"""
     )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS pengaturan (
+            kunci VARCHAR(40) PRIMARY KEY,
+            nilai VARCHAR(255) NOT NULL
+        )"""
+    )
     cur.execute("SELECT id FROM pengguna WHERE username=%s", ("admin",))
     if not cur.fetchone():
         cur.execute(

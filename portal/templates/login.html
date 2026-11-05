@@ -13,6 +13,9 @@
       <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
       <h1>SMARTMU 22</h1>
       <p class="sekolah">SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+      {% if rawat %}
+      <p class="peringatan">Semua portal sedang maintenance.</p>
+      {% endif %}
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for jenis, pesan in messages %}
         <div class="flash {{ jenis }}">{{ pesan }}</div>
@@ -24,7 +27,7 @@
       <label for="password">Kata sandi</label>
       <input id="password" name="password" type="password" autocomplete="current-password" required>
       <button type="submit">Masuk</button>
-      <p class="catatan">Akun awal staf: <b>admin</b> / <b>admin123</b>. Orang tua murid masuk dengan username dan kata sandi yang sama seperti di Tahfidz.</p>
+      <p class="catatan">Akun awal staf: <b>admin</b> / <b>admin123</b>. Orang tua murid masuk dengan username dan kata sandi yang sama seperti di Tahfidz. Guru masuk dengan nama guru tanpa gelar. Password awal <b>guruSMPM22</b>. Setelah masuk, guru dapat mengganti password lewat menu Ganti Password. Guru pengampu mengisi mata pelajaran yang diampunya. Guru BK langsung masuk ke portal Rapor BK.</p>
     </form>
   </main>
 </body>

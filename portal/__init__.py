@@ -19,6 +19,7 @@ from werkzeug.security import check_password_hash
 
 from portal import akun as akun_db
 from portal import cadangan as cadangan_db
+from portal import rawat as rawat_db
 
 from pengaturan import (
     MYSQL_HOST,
@@ -88,6 +89,28 @@ def tujuan_aman(nilai):
     return nilai
 
 
+def _tujuan_guru(user_id, role):
+    if role == "guru_bk":
+        return "/bk/"
+    if role == "guru_piket":
+        from portal.guru_akun import mengajar_bk
+
+        if mengajar_bk(user_id):
+            return "/bk/"
+        return "/presensi/presensi"
+    if role == "guru_pengampu":
+        return "/presensi/hasil-belajar"
+    return None
+
+
+def _tujuan_ortu():
+    from portal.kelas_ortu import anak_ikut_tahfidz
+
+    if anak_ikut_tahfidz(session.get("username"), session.get("user_id")):
+        return "/tahfidz/"
+    return "/presensi/ortu/pengumuman"
+
+
 def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["SECRET_KEY"] = SECRET_KEY
@@ -110,19 +133,33 @@ def create_app():
 
     @app.context_processor
     def sisip():
-        return {"modul_list": modul_terlihat(), "sso": baca(request), "portal_opsi": akun_db.PORTAL}
+        try:
+            nyala = rawat_db.aktif()
+        except pymysql.MySQLError:
+            nyala = False
+        return {
+            "modul_list": modul_terlihat(),
+            "sso": baca(request),
+            "portal_opsi": akun_db.PORTAL,
+            "rawat": nyala,
+        }
 
     @app.after_request
     def segarkan_sso(respon):
         if session.get("user_id") and not baca(request):
-            pasang(
-                respon,
-                {
-                    "username": session.get("username"),
-                    "nama": session.get("nama"),
-                    "role": session.get("role"),
-                },
-            )
+            sudah = respon.headers.getlist("Set-Cookie")
+            if any(bagian.startswith("smartmu_sso=") for bagian in sudah):
+                return respon
+            muatan = {
+                "username": session.get("username"),
+                "nama": session.get("nama"),
+                "role": session.get("role"),
+            }
+            if session.get("user_id") and session.get("role") in {"guru_piket", "guru_bk", "guru_pengampu", "orang_tua"}:
+                muatan["id"] = session.get("user_id")
+            if _tujuan_guru(session.get("user_id"), session.get("role")) == "/bk/":
+                muatan["bk"] = 1
+            pasang(respon, muatan)
         return respon
 
     @app.before_request
@@ -147,14 +184,46 @@ def create_app():
         if kunci in akun_db.NAMA_PORTAL:
             flash(f"Akun ini tidak dapat membuka {akun_db.NAMA_PORTAL[kunci]}.", "error")
         if session.get("role") == "orang_tua":
-            return redirect("/tahfidz/")
-        return render_template("home.html")
+            return redirect(_tujuan_ortu())
+        tujuan_guru = _tujuan_guru(session.get("user_id"), session.get("role"))
+        if tujuan_guru:
+            return redirect(tujuan_guru)
+        token = ""
+        if session.get("role") == "admin":
+            session["rawat_token"] = secrets.token_urlsafe(24)
+            token = session["rawat_token"]
+        return render_template("home.html", rawat_token=token)
+
+    @app.route("/maintenance", methods=["POST"])
+    def atur_rawat():
+        tolak = wajib_admin()
+        if tolak:
+            return tolak
+        token = session.get("rawat_token") or ""
+        kiriman = request.form.get("token") or ""
+        if not token or not secrets.compare_digest(token, kiriman):
+            flash("Halaman kadaluarsa. Muat ulang beranda, lalu coba lagi.", "error")
+            return redirect(url_for("beranda"))
+        nyala = request.form.get("nyala") == "1"
+        try:
+            rawat_db.atur(nyala)
+        except pymysql.MySQLError:
+            flash("Maintenance gagal diubah.", "error")
+            return redirect(url_for("beranda"))
+        if nyala:
+            flash("Maintenance diaktifkan. Semua portal menampilkan tulisan maintenance.", "info")
+        else:
+            flash("Maintenance dimatikan. Semua portal dapat dibuka kembali.", "info")
+        return redirect(url_for("beranda"))
 
     @app.route("/login", methods=["GET", "POST"])
     def masuk():
         if session.get("user_id"):
             if session.get("role") == "orang_tua":
-                return redirect("/tahfidz/")
+                return redirect(_tujuan_ortu())
+            tujuan_guru = _tujuan_guru(session.get("user_id"), session.get("role"))
+            if tujuan_guru:
+                return redirect(tujuan_guru)
             return redirect(tujuan_aman(request.args.get("next")))
         if request.method == "POST":
             username = (request.form.get("username") or "").strip()
@@ -180,15 +249,39 @@ def create_app():
             if not user:
                 ortu = akun_db.cari_orang_tua(username, password)
                 if not ortu:
-                    flash("Username atau kata sandi salah.", "error")
-                    return render_template("login.html", next=request.form.get("next") or "")
+                    from portal.guru_akun import cari as cari_guru
+
+                    guru = cari_guru(username, password)
+                    if guru == "bukan_piket":
+                        flash("Akun guru ini belum mengampu mata pelajaran dan belum masuk jadwal piket.", "error")
+                        return render_template("login.html", next=request.form.get("next") or "")
+                    if not guru:
+                        flash("Username atau kata sandi salah.", "error")
+                        return render_template("login.html", next=request.form.get("next") or "")
+                    session.clear()
+                    session["user_id"] = guru["id"]
+                    session["username"] = guru["username"]
+                    session["nama"] = guru["nama"]
+                    session["role"] = guru["role"]
+                    session["asal"] = "presensi_guru"
+                    tujuan = _tujuan_guru(guru["id"], guru["role"]) or "/presensi/presensi"
+                    return pasang(
+                        redirect(tujuan),
+                        {
+                            "id": guru["id"],
+                            "username": guru["username"],
+                            "nama": guru["nama"],
+                            "role": guru["role"],
+                            "bk": 1 if tujuan == "/bk/" else 0,
+                        },
+                    )
                 session.clear()
                 session["user_id"] = ortu["id"]
                 session["username"] = ortu["username"]
                 session["nama"] = ortu["nama_lengkap"]
                 session["role"] = "orang_tua"
                 session["asal"] = "tahfidz_ortu"
-                tujuan = "/tahfidz/"
+                tujuan = _tujuan_ortu()
                 return pasang(
                     redirect(tujuan),
                     {
@@ -267,12 +360,23 @@ def create_app():
         if not akun:
             flash("Akun admin tidak ditemukan.", "error")
             return redirect(url_for("beranda"))
+        daftar_guru = []
+        sandi_guru = ""
+        try:
+            from portal.guru_akun import SANDI_AWAL, daftar_akun
+
+            daftar_guru = daftar_akun()
+            sandi_guru = SANDI_AWAL
+        except pymysql.MySQLError:
+            flash("Daftar akun guru belum bisa dimuat.", "error")
         return render_template(
             "pengguna.html",
             akun=akun,
             daftar=baris,
             peran=akun_db.PERAN,
             token=token_akun(),
+            daftar_guru=daftar_guru,
+            sandi_guru=sandi_guru,
         )
 
     @app.route("/pengguna/<int:pengguna_id>")
@@ -389,6 +493,27 @@ def create_app():
             return redirect(url_for("pengguna"))
         flash("Pengguna ditambahkan. Username itu hanya membuka portal yang dicentang.", "info")
         return redirect(url_for("pengguna"))
+
+    @app.route("/pengguna/guru/<int:guru_id>/reset", methods=["POST"])
+    def reset_akun_guru(guru_id):
+        tolak = wajib_admin()
+        if tolak:
+            return tolak
+        if not token_akun_sah():
+            flash("Halaman kadaluarsa. Buka ulang halaman Pengguna, lalu coba lagi.", "error")
+            return redirect(url_for("pengguna"))
+        try:
+            from portal.guru_akun import SANDI_AWAL, reset as reset_guru
+
+            nama = reset_guru(guru_id)
+        except pymysql.MySQLError:
+            flash("Password guru gagal direset.", "error")
+            return redirect(url_for("pengguna"))
+        if not nama:
+            flash("Guru tidak ditemukan.", "error")
+        else:
+            flash(f"Password akun {nama} direset menjadi {SANDI_AWAL}.", "info")
+        return redirect(url_for("pengguna") + "#akun-guru")
 
     @app.route("/cadangan")
     def cadangan():

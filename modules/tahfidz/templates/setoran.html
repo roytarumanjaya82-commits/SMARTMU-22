@@ -7,17 +7,17 @@
     <div class="panel-body">
       <form method="post" class="form-grid">
         <div class="full">
-          <label>Murid</label>
-          <select name="siswa_id" required>
-            <option value="">— Pilih murid —</option>
-            {% for s in siswa %}
-            <option value="{{ s.id }}">{{ s.nama_kelas }} · {{ s.nama }} ({{ s.nis }})</option>
-            {% endfor %}
-          </select>
+          <label for="ketik-murid">Murid</label>
+          <div class="cari-murid">
+            <input type="text" id="ketik-murid" autocomplete="off" placeholder="Ketik nama, kelas, atau NIS" required>
+            <input type="hidden" name="siswa_id" id="pilih-murid">
+            <div class="daftar-murid" id="daftar-murid" hidden></div>
+          </div>
+          <script type="application/json" id="data-murid">[{% for s in siswa %}{"id":{{ s.id }},"teks":{{ (s.nama_kelas ~ " · " ~ s.nama ~ " (" ~ s.nis ~ ")") | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]</script>
         </div>
         <div>
           <label>Tanggal & Waktu</label>
-          <input type="datetime-local" name="tanggal" value="{{ now }}" required>
+          <input type="datetime-local" name="tanggal" id="waktu-setoran" value="{{ now }}" required>
         </div>
         <div>
           <label>Jenis Setoran</label>
@@ -27,16 +27,8 @@
           </select>
         </div>
         <div class="full">
-          <label>Surah / Ayat</label>
-          <input type="text" name="surah" required placeholder="Q.S. Al-Mujadila: 1–8 (Juz 28)">
-        </div>
-        <div>
-          <label>Ayat Awal</label>
-          <input type="number" name="ayat_awal" min="1">
-        </div>
-        <div>
-          <label>Ayat Akhir</label>
-          <input type="number" name="ayat_akhir" min="1">
+          <label>Surah</label>
+          <input type="text" name="surah" required placeholder="Q.S. Al-Mujadila (Juz 28)">
         </div>
         <div class="full form-row-3">
           <div>
@@ -119,4 +111,110 @@
     </div>
   </div>
 </div>
+<script>
+(function () {
+  var ketik = document.getElementById("ketik-murid");
+  var murid = document.getElementById("pilih-murid");
+  var daftar = document.getElementById("daftar-murid");
+  var waktu = document.getElementById("waktu-setoran");
+  var dataEl = document.getElementById("data-murid");
+  if (!ketik || !murid || !daftar || !dataEl) return;
+  var semua = JSON.parse(dataEl.textContent || "[]");
+  var saringan = semua.slice();
+  var sorot = -1;
+
+  function dua(angka) {
+    return String(angka).padStart(2, "0");
+  }
+  function segarkanWaktu() {
+    if (!waktu) return;
+    var kini = new Date();
+    waktu.value = kini.getFullYear() + "-" + dua(kini.getMonth() + 1) + "-" + dua(kini.getDate())
+      + "T" + dua(kini.getHours()) + ":" + dua(kini.getMinutes());
+  }
+  function tutup() {
+    daftar.hidden = true;
+    sorot = -1;
+  }
+  function gambar() {
+    daftar.innerHTML = "";
+    if (!saringan.length) {
+      daftar.hidden = false;
+      var kosong = document.createElement("div");
+      kosong.className = "murid-kosong";
+      kosong.textContent = "Murid tidak ditemukan.";
+      daftar.appendChild(kosong);
+      return;
+    }
+    saringan.forEach(function (item, indeks) {
+      var tombol = document.createElement("button");
+      tombol.type = "button";
+      tombol.className = "murid-pilihan" + (indeks === sorot ? " sorot" : "");
+      tombol.textContent = item.teks;
+      tombol.addEventListener("mousedown", function (ev) {
+        ev.preventDefault();
+        pilih(item);
+      });
+      daftar.appendChild(tombol);
+    });
+    daftar.hidden = false;
+    var aktif = daftar.querySelector(".sorot");
+    if (aktif) aktif.scrollIntoView({ block: "nearest" });
+  }
+  function saring(kata) {
+    var cari = kata.trim().toLowerCase();
+    saringan = !cari ? semua.slice() : semua.filter(function (item) {
+      return item.teks.toLowerCase().indexOf(cari) !== -1;
+    });
+    sorot = saringan.length ? 0 : -1;
+    gambar();
+  }
+  function pilih(item) {
+    murid.value = String(item.id);
+    ketik.value = item.teks;
+    ketik.setCustomValidity("");
+    tutup();
+    segarkanWaktu();
+  }
+  ketik.addEventListener("focus", function () { saring(ketik.value); });
+  ketik.addEventListener("input", function () {
+    murid.value = "";
+    ketik.setCustomValidity("");
+    saring(ketik.value);
+  });
+  ketik.addEventListener("keydown", function (ev) {
+    if (daftar.hidden && (ev.key === "ArrowDown" || ev.key === "ArrowUp")) {
+      saring(ketik.value);
+      if (ev.key === "ArrowDown") return;
+    }
+    if (ev.key === "ArrowDown") {
+      ev.preventDefault();
+      if (!saringan.length) return;
+      sorot = (sorot + 1) % saringan.length;
+      gambar();
+    } else if (ev.key === "ArrowUp") {
+      ev.preventDefault();
+      if (!saringan.length) return;
+      sorot = (sorot - 1 + saringan.length) % saringan.length;
+      gambar();
+    } else if (ev.key === "Enter" && !daftar.hidden && sorot >= 0) {
+      ev.preventDefault();
+      pilih(saringan[sorot]);
+    } else if (ev.key === "Escape") {
+      tutup();
+    }
+  });
+  document.addEventListener("click", function (ev) {
+    if (!ketik.parentNode.contains(ev.target)) tutup();
+  });
+  ketik.form.addEventListener("submit", function (ev) {
+    if (!murid.value) {
+      ev.preventDefault();
+      ketik.setCustomValidity("Pilih murid dari daftar yang muncul.");
+      ketik.reportValidity();
+      saring(ketik.value);
+    }
+  });
+})();
+</script>
 {% endblock %}

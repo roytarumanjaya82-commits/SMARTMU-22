@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pengguna · SMARTMU 22</title>
   <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}?v=2">
 </head>
 <body>
   <div class="bungkus">
@@ -105,6 +105,42 @@
           </tbody>
         </table>
       </div>
+    </section>
+
+    <section class="lembar" id="akun-guru">
+      <h2>Akun guru</h2>
+      <p>Username adalah nama guru tanpa gelar. Password awal sama untuk semua guru. Tombol reset mengembalikan password ke nilai awal.</p>
+      {% if daftar_guru %}
+      <div class="gulung">
+        <table class="tabel">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Username</th>
+              <th>Password awal</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for guru in daftar_guru %}
+            <tr>
+              <td><strong>{{ guru.nama }}</strong></td>
+              <td>{{ guru.username }}</td>
+              <td>{{ sandi_guru }}</td>
+              <td>
+                <form method="post" action="{{ url_for('reset_akun_guru', guru_id=guru.id) }}">
+                  <input type="hidden" name="token" value="{{ token }}">
+                  <button class="tombol" type="submit">Reset password</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="kosong">Belum ada akun guru.</p>
+      {% endif %}
     </section>
   </div>
 </body>

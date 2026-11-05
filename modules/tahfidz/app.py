@@ -49,6 +49,12 @@ def _isi_sesi_ortu(user):
     session["role"] = "orang_tua"
     session["must_change_password"] = bool(user.get("must_change_password"))
     session["dari_portal"] = True
+    try:
+        from portal.kelas_ortu import anak_ikut_tahfidz
+
+        session["ikut_tahfidz"] = anak_ikut_tahfidz(user.get("username"), user.get("id"))
+    except Exception:
+        session["ikut_tahfidz"] = False
     ta = get_tahun_aktif()
     if ta:
         session["ta_id"] = ta["id"]
@@ -57,6 +63,12 @@ def _isi_sesi_ortu(user):
 def _jaga_menu_ortu():
     if session.get("role") != "orang_tua":
         return None
+    if not session.get("ikut_tahfidz") and request.endpoint in {
+        "dashboard",
+        "laporan_index",
+        "laporan_detail",
+    }:
+        return redirect("/presensi/ortu/pengumuman")
     if (
         session.get("must_change_password")
         and not session.get("sudah_ingat_sandi")
@@ -907,9 +919,9 @@ def setoran():
             execute(
                 """
                 INSERT INTO setoran
-                  (siswa_id, tahun_ajaran_id, tanggal, jenis, surah, ayat_awal, ayat_akhir,
+                  (siswa_id, tahun_ajaran_id, tanggal, jenis, surah,
                    juz, volume_halaman, volume_baris, nilai, predikat, status, catatan, musyrif_id)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """,
                 (
                     request.form.get("siswa_id"),
@@ -917,8 +929,6 @@ def setoran():
                     tanggal,
                     request.form.get("jenis"),
                     request.form.get("surah", "").strip(),
-                    request.form.get("ayat_awal") or None,
-                    request.form.get("ayat_akhir") or None,
                     request.form.get("juz") or None,
                     float(request.form.get("volume_halaman") or 0),
                     float(request.form.get("volume_baris") or 0),
@@ -1016,7 +1026,18 @@ def laporan_index():
     q = request.args.get("q", "").strip()
     kelas_id = request.args.get("kelas_id", "")
     sql = """
-        SELECT s.id, s.nis, s.nama, k.nama AS nama_kelas, k.jenjang, m.nama AS nama_musyrif,
+        SELECT s.id, s.nis, s.nama, k.nama AS nama_kelas, k.jenjang,
+               COALESCE(
+                 m.nama,
+                 (
+                   SELECT mm.nama
+                   FROM setoran stx
+                   JOIN musyrif mm ON mm.id = stx.musyrif_id
+                   WHERE stx.siswa_id = s.id AND stx.tahun_ajaran_id = s.tahun_ajaran_id
+                   ORDER BY stx.tanggal DESC
+                   LIMIT 1
+                 )
+               ) AS nama_musyrif,
                COALESCE(SUM(CASE WHEN st.status='Lulus' AND st.jenis='Ziyadah'
                                  THEN st.volume_halaman ELSE 0 END), 0) AS total_halaman
         FROM siswa s
@@ -1085,7 +1106,7 @@ def laporan_detail(sid):
 
     log = query_all(
         """
-        SELECT st.*, m.nama AS nama_musyrif
+        SELECT st.*, m.nama AS nama_musyrif, m.gelar AS gelar_musyrif
         FROM setoran st
         LEFT JOIN musyrif m ON m.id = st.musyrif_id
         WHERE st.siswa_id=%s AND st.tahun_ajaran_id=%s
@@ -1093,6 +1114,12 @@ def laporan_detail(sid):
         """,
         (sid, ta["id"]),
     )
+    if not siswa.get("nama_musyrif"):
+        for baris in log:
+            if baris.get("nama_musyrif"):
+                siswa["nama_musyrif"] = baris["nama_musyrif"]
+                siswa["gelar_musyrif"] = baris.get("gelar_musyrif")
+                break
 
     evaluasi = query_one(
         "SELECT * FROM evaluasi WHERE siswa_id=%s AND tahun_ajaran_id=%s",

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card shadow-sm p-4 mb-4 bg-white rounded">
+    <h4 class="mb-2 text-primary fw-bold">Import Guru</h4>
+    <p class="text-muted">Blanko ini sama dengan hasil Cetak Excel pada menu Guru. Guru yang namanya sudah ada diperbarui. Guru yang tidak tercantum di file tetap tersimpan.</p>
+    <p class="mb-3">Lembar <b>Data Guru</b> berisi No, Nama Guru, Gelar, Jabatan, Tugas, Kelas yang Diampu, Mata Pelajaran, Wali Kelas, dan Jadwal Piket. Lembar <b>Penugasan</b> berisi wali kelas dan jadwal piket Senin–Jumat. Mata pelajaran dibaca dari lembar Data Guru. Wali kelas dan piket dibaca dari lembar Penugasan.</p>
+    <p class="mb-3"><a class="btn btn-outline-success" href="/import-guru/blanko">Unduh Blanko Excel</a></p>
+    <form method="POST" action="/import-guru" enctype="multipart/form-data" class="row g-3 align-items-end">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="col-md-8">
+            <label class="form-label fw-bold">File Excel</label>
+            <input type="file" name="berkas" accept=".xlsx,.xlsm" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary w-100">Baca File</button>
+        </div>
+    </form>
+</div>
+
+{% if notes %}
+<div class="alert alert-warning">
+    {% for note in notes %}<div>{{ note }}</div>{% endfor %}
+</div>
+{% endif %}
+
+{% if preview %}
+<div class="card shadow-sm p-4 mb-4 bg-white rounded">
+    <h5 class="fw-bold mb-3">Pratinjau guru</h5>
+    {% if preview.ringkas.pakai %}
+    <p class="mb-3">Perubahan penugasan: mata pelajaran {{ preview.ringkas.mapel }}, wali kelas {{ preview.ringkas.wali }}, jadwal piket {{ preview.ringkas.piket }}.</p>
+    {% endif %}
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Guru baru</div><div class="fs-4 fw-bold">{{ preview.counts.baru }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Diperbarui</div><div class="fs-4 fw-bold">{{ preview.counts.ubah }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Tetap</div><div class="fs-4 fw-bold">{{ preview.counts.tetap }}</div></div></div>
+        <div class="col-6 col-md-3"><div class="border rounded p-3"><div class="text-muted">Dilewati</div><div class="fs-4 fw-bold">{{ preview.counts.lewati }}</div></div></div>
+    </div>
+    {% if preview.baru %}
+    <p class="fw-bold mb-1">Guru baru</p>
+    <ul>
+        {% for guru in preview.baru %}
+        <li>{{ guru.nama }}{% if guru.gelar %}, {{ guru.gelar }}{% endif %}{% if guru.jabatan %} · {{ guru.jabatan }}{% endif %}{% if guru.tugas %} · {{ guru.tugas }}{% endif %}{% if guru.mapel_teks %} · {{ guru.mapel_teks }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% if preview.ubah %}
+    <p class="fw-bold mb-1">Diperbarui</p>
+    <ul>
+        {% for guru in preview.ubah %}
+        <li>{{ guru.nama }}{% if guru.gelar %}, {{ guru.gelar }}{% endif %}{% if guru.jabatan %} · {{ guru.jabatan }}{% endif %}{% if guru.tugas %} · {{ guru.tugas }}{% endif %}{% if guru.mapel_teks %} · {{ guru.mapel_teks }}{% endif %}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <form method="POST" action="/import-guru/simpan">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="token" value="{{ preview.token }}">
+        <button type="submit" class="btn btn-success">Simpan ke Database</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

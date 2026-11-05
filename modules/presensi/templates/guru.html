@@ -5,8 +5,12 @@
     select.form-select { min-height: 48px; }
 </style>
 <div class="card shadow-sm p-4 mb-4 bg-white rounded">
-    <h4 class="mb-2 text-primary fw-bold">Guru dan Kelas yang Diampu</h4>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h4 class="mb-0 text-primary fw-bold">Guru dan Kelas yang Diampu</h4>
+        <a class="btn btn-outline-success" href="/guru/cetak">Cetak Excel</a>
+    </div>
     <p class="text-muted">Kelas dan mata pelajaran diisi dari jadwal 2026/2027. Centang bisa diubah, lalu simpan.</p>
+    <p class="mb-3">Setiap guru punya akun. Username adalah nama guru. Password awal <b>{{ sandi_guru }}</b>. Setelah masuk, guru dapat mengganti password lewat menu Ganti Password. Guru yang mengampu mata pelajaran dapat login dan mengisi pelajaran itu di Hasil Belajar. Guru piket juga melihat Form Presensi, Tata Tertib, Laporan Harian, dan Rekap Bulanan. Guru BK juga melihat portal Rapor BK.</p>
 
     <form method="POST" action="/guru" class="mb-4">
         <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -18,7 +22,7 @@
                 <select class="form-select form-select-sm" name="wali_{{ k.id }}">
                     <option value="">-</option>
                     {% for guru in guru_list %}
-                    <option value="{{ guru.id }}" {% if k.wali_guru_id == guru.id %}selected{% endif %}>{{ guru.nama }}</option>
+                    <option value="{{ guru.id }}" {% if k.wali_guru_id == guru.id %}selected{% endif %}>{{ guru.nama_lengkap }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -42,7 +46,7 @@
                     <select class="form-select" id="piket_{{ hari }}_{{ urutan }}" name="piket_{{ hari }}_{{ urutan }}">
                         <option value="">-</option>
                         {% for guru in guru_list %}
-                        <option value="{{ guru.id }}" {% if piket_terpilih.get((hari, urutan)) == guru.id %}selected{% endif %}>{{ guru.nama }}</option>
+                        <option value="{{ guru.id }}" {% if piket_terpilih.get((hari, urutan)) == guru.id %}selected{% endif %}>{{ guru.nama_lengkap }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -70,10 +74,18 @@
                         <td data-label="No">{{ guru.urutan }}</td>
                         <td class="card-title" data-label="Nama">
                             <input type="hidden" name="guru_id" value="{{ guru.id }}">
-                            <input class="form-control form-control-sm" name="nama_{{ guru.id }}" value="{{ guru.nama }}">
+                            <input class="form-control form-control-sm" name="nama_{{ guru.id }}" value="{{ guru.nama_lengkap }}">
                             {% for mapel in guru.mapel %}
                             <div class="small text-muted mt-1">{{ mapel.nama }}: {{ mapel.kelas }}</div>
                             {% endfor %}
+                            <div class="small mt-1">
+                                {% if guru.jabatan %}{{ guru.jabatan }}{% endif %}
+                                {% if guru.tugas %}<div>{{ guru.tugas }}</div>{% endif %}
+                                Akun: {{ guru.nama }}{% if guru.id in piket_ids %} · Guru piket{% endif %}
+                            </div>
+                            {% if boleh_reset %}
+                            <button class="btn btn-outline-secondary btn-sm mt-1" type="submit" form="reset-{{ guru.id }}">Reset password</button>
+                            {% endif %}
                         </td>
                         <td data-label="Kelas">
                             <div class="d-flex flex-wrap gap-2">
@@ -92,6 +104,15 @@
         </div>
         <button type="submit" class="btn btn-success">Simpan penugasan</button>
     </form>
+    {% if boleh_reset %}
+    {% for guru in guru_list %}
+    <form id="reset-{{ guru.id }}" method="POST" action="/guru" hidden>
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="aksi" value="reset_akun">
+        <input type="hidden" name="guru_id" value="{{ guru.id }}">
+    </form>
+    {% endfor %}
+    {% endif %}
 
     <form method="POST" action="/guru" class="row g-2 mt-4">
         <input type="hidden" name="csrf" value="{{ csrf }}">

@@ -12,6 +12,17 @@
     .tabel-absen .kol-status { width: 1.75rem; text-align: center; white-space: nowrap; padding-left: 0; padding-right: 0; }
     .tabel-absen .kol-ket { width: 4.4rem; }
     .tabel-absen .nama { overflow-wrap: anywhere; }
+    .tabel-guru { width: 100%; table-layout: fixed; margin-bottom: 0.75rem; }
+    .tabel-guru th, .tabel-guru td { vertical-align: middle; overflow-wrap: anywhere; }
+    .tabel-guru .kol-no { width: 2.6rem; text-align: center; }
+    .tabel-guru .kol-alasan { width: 8rem; }
+    .tabel-guru .kol-ket { width: 12rem; }
+    .daftar-isi { table-layout: fixed; }
+    .daftar-isi th, .daftar-isi td { vertical-align: middle; }
+    .daftar-isi .kol-nama { width: 16%; }
+    .daftar-isi .kol-kelas { width: 22%; font-size: 0.86rem; line-height: 1.3; }
+    .daftar-isi .kol-hadir { width: 8rem; }
+    .daftar-isi .kol-alasan { width: 9rem; }
     @media print {
         nav, .no-print, .alert { display: none !important; }
         body { background: #fff; }
@@ -148,10 +159,7 @@
         <li>Tim penyambut: {{ piket.tim_penyambut or '-' }}</li>
         {% if sudah_guru %}
         <li>Guru hadir ke sekolah: {{ guru_hadir }}</li>
-        <li>Guru tidak hadir: {{ guru_absen|length }}{% if guru_absen %} ({{ guru_absen|map(attribute='alasan')|select|join(', ') }}){% endif %}</li>
-        <li>Guru pelatihan: {{ guru_pelatihan|length }}</li>
-        <li>Guru terlambat: {% if guru_telat %}{{ guru_telat|map(attribute='nama')|join(', ') }}{% else %}Nihil{% endif %}</li>
-        <li>Guru izin pulang: {{ guru_pulang|length }}</li>
+        <li>Guru tidak masuk: {{ guru_tidak_masuk|length }}</li>
         {% else %}
         <li>Guru hadir ke sekolah: {{ piket.guru_hadir or '-' }}</li>
         <li>Guru tidak hadir: {{ piket.guru_tidak_hadir or '-' }}</li>
@@ -161,6 +169,34 @@
         {% endif %}
         <li>Daftar kelas kosong: {{ piket.kelas_kosong or '-' }}</li>
     </ul>
+
+    <h5 class="fw-bold mt-4">Daftar guru yang tidak masuk</h5>
+    {% if sudah_guru and guru_tidak_masuk %}
+    <table class="table table-bordered table-sm tabel-guru mb-3">
+        <thead class="table-light">
+            <tr>
+                <th class="kol-no">No</th>
+                <th>Nama Guru</th>
+                <th class="kol-alasan">Alasan</th>
+                <th class="kol-ket">Keterangan</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for guru in guru_tidak_masuk %}
+            <tr>
+                <td class="kol-no">{{ loop.index }}</td>
+                <td>{{ guru.nama_lengkap }}</td>
+                <td class="kol-alasan">{{ guru.pilih or guru.kehadiran }}</td>
+                <td class="kol-ket">{{ guru.catatan }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% elif sudah_guru %}
+    <p class="text-muted">Nihil</p>
+    {% else %}
+    <p>{{ piket.guru_tidak_hadir or 'Nihil' }}</p>
+    {% endif %}
 
     <div class="catatan-blok">
         <h5 class="fw-bold mt-4">Catatan kejadian penting</h5>
@@ -200,15 +236,14 @@
         <input id="cari-guru" class="form-control mb-3" type="search" placeholder="Ketik nama guru" autocomplete="off" style="min-height: 48px;">
         <p id="cari-guru-kosong" class="text-muted" hidden>Tidak ada guru dengan nama itu.</p>
         <div class="table-responsive mb-3">
-            <table id="daftar-guru" class="table table-sm table-bordered align-middle as-cards">
+            <table id="daftar-guru" class="table table-sm table-bordered align-middle as-cards daftar-isi">
                 <thead class="table-light">
                     <tr>
-                        <th>Nama Guru</th>
-                        <th>Kelas</th>
-                        <th>Kehadiran</th>
-                        <th>Terlambat</th>
-                        <th>Izin pulang</th>
-                        <th>Alasan tidak hadir</th>
+                        <th class="kol-nama">Nama Guru</th>
+                        <th class="kol-kelas">Kelas</th>
+                        <th class="kol-hadir">Kehadiran</th>
+                        <th class="kol-alasan">Alasan</th>
+                        <th>Keterangan</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -216,20 +251,25 @@
                     <tr data-cari="{{ (guru.nama ~ ' ' ~ (guru.kelas or ''))|lower }}">
                         <td class="card-title" data-label="Nama">
                             <input type="hidden" name="guru_id" value="{{ guru.id }}">
-                            {{ guru.nama }}
+                            {{ guru.nama_lengkap }}
                         </td>
-                        <td data-label="Kelas">{{ guru.kelas or '-' }}</td>
+                        <td class="kol-kelas" data-label="Kelas">{{ guru.kelas or '-' }}</td>
                         <td data-label="Kehadiran">
-                            {% for st in ['Hadir', 'Tidak Hadir', 'Pelatihan'] %}
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="gstatus_{{ guru.id }}" value="{{ st }}" {% if guru.status == st %}checked{% endif %}>
-                                <label class="form-check-label">{{ st }}</label>
-                            </div>
-                            {% endfor %}
+                            <select class="form-select form-select-sm" name="gstatus_{{ guru.id }}">
+                                {% for st in ['Hadir', 'Tidak Hadir', 'Pelatihan'] %}
+                                <option value="{{ st }}" {% if guru.kehadiran == st %}selected{% endif %}>{{ st }}</option>
+                                {% endfor %}
+                            </select>
                         </td>
-                        <td data-label="Terlambat"><input class="form-check-input" type="checkbox" name="gterlambat_{{ guru.id }}" value="1" {% if guru.terlambat %}checked{% endif %}></td>
-                        <td data-label="Izin pulang"><input class="form-check-input" type="checkbox" name="gpulang_{{ guru.id }}" value="1" {% if guru.izin_pulang %}checked{% endif %}></td>
-                        <td data-label="Alasan"><input class="form-control form-control-sm" name="galasan_{{ guru.id }}" value="{{ guru.alasan }}" placeholder="sakit / cuti"></td>
+                        <td data-label="Alasan">
+                            <select class="form-select form-select-sm" name="gpilih_{{ guru.id }}">
+                                <option value="">-</option>
+                                {% for st in ['Sakit', 'Izin', 'Izin dinas', 'Izin pulang'] %}
+                                <option value="{{ st }}" {% if guru.pilih == st %}selected{% endif %}>{{ st }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td data-label="Keterangan"><input class="form-control form-control-sm" name="galasan_{{ guru.id }}" value="{{ guru.catatan }}" placeholder="Contoh: demam, workshop"></td>
                     </tr>
                     {% endfor %}
                 </tbody>

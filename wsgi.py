@@ -96,7 +96,8 @@ body{padding-top:44px !important}
 #app .app{height:calc(100vh - 44px) !important}
 @media (max-width: 760px){
   #smartmu-garis{display:inline-flex}
-  #smartmu-switch nav{display:none;position:absolute;top:44px;left:0;right:0;flex:none;flex-direction:column;align-items:stretch;height:auto;gap:4px;max-height:calc(100dvh - 44px);overflow-y:auto;background:#0c4f3b;padding:8px 10px 14px;border-top:1px solid rgba(255,255,255,.16);box-shadow:0 16px 32px rgba(0,0,0,.2)}
+  #smartmu-switch.buka{overflow:visible}
+  #smartmu-switch nav{display:none;position:absolute;top:44px;left:0;right:0;z-index:1;flex:none;flex-direction:column;align-items:stretch;height:auto;gap:4px;max-height:calc(100dvh - 44px);overflow-y:auto;background:#0c4f3b;padding:8px 10px 14px;border-top:1px solid rgba(255,255,255,.16);box-shadow:0 16px 32px rgba(0,0,0,.2)}
   #smartmu-switch.buka nav{display:flex}
   #smartmu-switch nav a{padding:13px 12px}
   html,body{height:auto !important;overflow:auto !important}

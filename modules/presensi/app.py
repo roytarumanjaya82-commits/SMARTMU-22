@@ -566,6 +566,12 @@ def ensure_schema(conn):
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """)
         conn.commit()
+    cursor.execute("SHOW COLUMNS FROM presensi_guru LIKE 'izin_dinas'")
+    if cursor.fetchone() is None:
+        cursor.execute(
+            "ALTER TABLE presensi_guru ADD COLUMN izin_dinas TINYINT(1) NOT NULL DEFAULT 0"
+        )
+        conn.commit()
     cursor.execute("SELECT nama, urutan FROM guru")
     sudah = cursor.fetchall()
     punya_nama = {row[0] for row in sudah}
@@ -1022,21 +1028,36 @@ def laporan_harian():
             request.form.get('catatan', '').strip(),
         ))
         for guru_id in request.form.getlist('guru_id'):
-            status = request.form.get(f'gstatus_{guru_id}', 'Hadir')
-            if status not in ('Hadir', 'Tidak Hadir', 'Pelatihan'):
+            kehadiran = request.form.get(f'gstatus_{guru_id}', 'Hadir')
+            if kehadiran not in ('Hadir', 'Tidak Hadir', 'Pelatihan'):
+                kehadiran = 'Hadir'
+            pilih = request.form.get(f'gpilih_{guru_id}', '')
+            if pilih not in ('Sakit', 'Izin', 'Izin dinas', 'Izin pulang'):
+                pilih = ''
+            if pilih == 'Sakit':
+                status = 'Sakit'
+            elif pilih == 'Izin':
+                status = 'Izin'
+            elif pilih == 'Izin dinas' and kehadiran == 'Hadir':
                 status = 'Hadir'
-            terlambat = 1 if status == 'Hadir' and request.form.get(f'gterlambat_{guru_id}') else 0
-            izin_pulang = 1 if status == 'Hadir' and request.form.get(f'gpulang_{guru_id}') else 0
-            alasan = request.form.get(f'galasan_{guru_id}', '')[:120] if status != 'Hadir' else ''
+            elif pilih == 'Izin pulang' and kehadiran == 'Hadir':
+                status = 'Hadir'
+            else:
+                status = kehadiran
+            terlambat = 0
+            izin_pulang = 1 if pilih == 'Izin pulang' else 0
+            izin_dinas = 1 if pilih == 'Izin dinas' else 0
+            alasan = request.form.get(f'galasan_{guru_id}', '')[:120] if pilih or status != 'Hadir' else ''
             cursor.execute("""
-                INSERT INTO presensi_guru (guru_id, tanggal, status, alasan, terlambat, izin_pulang)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO presensi_guru (guru_id, tanggal, status, alasan, terlambat, izin_pulang, izin_dinas)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
                     status = VALUES(status),
                     alasan = VALUES(alasan),
                     terlambat = VALUES(terlambat),
-                    izin_pulang = VALUES(izin_pulang)
-            """, (guru_id, tanggal, status, alasan, terlambat, izin_pulang))
+                    izin_pulang = VALUES(izin_pulang),
+                    izin_dinas = VALUES(izin_dinas)
+            """, (guru_id, tanggal, status, alasan, terlambat, izin_pulang, izin_dinas))
         conn.commit()
         flash('Laporan harian piket disimpan.', 'success')
         conn.close()
@@ -1066,8 +1087,8 @@ def laporan_harian():
         "tim_penyambut": "", "kelas_kosong": "", "catatan": "",
     }
     cursor.execute("""
-        SELECT g.id, g.nama, g.urutan,
-               p.status, p.alasan, p.terlambat, p.izin_pulang
+        SELECT g.id, g.nama, g.gelar, g.urutan,
+               p.status, p.alasan, p.terlambat, p.izin_pulang, p.izin_dinas
         FROM guru g
         LEFT JOIN presensi_guru p ON p.guru_id = g.id AND p.tanggal = %s
         WHERE g.aktif = 1
@@ -1088,11 +1109,29 @@ def laporan_harian():
             daftar = ", ".join(sorted(set(nama_kelas), key=urut_kelas))
             bagian.append(f"{mapel}: {daftar}" if mapel else daftar)
         guru["kelas"] = "; ".join(bagian)
+        guru["nama_lengkap"] = nama_dengan_gelar(guru["nama"], guru.get("gelar"))
         if guru["status"] is None:
             guru["status"] = "Hadir"
             guru["alasan"] = ""
             guru["terlambat"] = 0
             guru["izin_pulang"] = 0
+            guru["izin_dinas"] = 0
+        guru["izin_dinas"] = 1 if guru.get("izin_dinas") or guru["status"] == "Dinas" else 0
+        if guru["status"] == "Sakit":
+            guru["pilih"] = "Sakit"
+        elif guru["status"] == "Izin":
+            guru["pilih"] = "Izin"
+        elif guru["izin_dinas"] or guru["status"] == "Dinas":
+            guru["pilih"] = "Izin dinas"
+        elif guru.get("izin_pulang"):
+            guru["pilih"] = "Izin pulang"
+        else:
+            guru["pilih"] = ""
+        if guru["status"] in ("Hadir", "Tidak Hadir", "Pelatihan"):
+            guru["kehadiran"] = guru["status"]
+        else:
+            guru["kehadiran"] = "Tidak Hadir"
+        guru["catatan"] = (guru.get("alasan") or "").strip()
     cursor.execute("SELECT COUNT(*) AS n FROM presensi_guru WHERE tanggal = %s", (tanggal,))
     sudah_guru = cursor.fetchone()["n"] > 0
     nama_piket = guru_piket_hari(cursor, tanggal)
@@ -1126,11 +1165,14 @@ def laporan_harian():
         guru_piket=nama_piket,
         daftar_guru=daftar_guru,
         sudah_guru=sudah_guru,
-        guru_hadir=sum(1 for guru in daftar_guru if sudah_guru and guru["status"] == "Hadir"),
-        guru_absen=[guru for guru in daftar_guru if sudah_guru and guru["status"] == "Tidak Hadir"],
-        guru_pelatihan=[guru for guru in daftar_guru if sudah_guru and guru["status"] == "Pelatihan"],
-        guru_telat=[guru for guru in daftar_guru if sudah_guru and guru["status"] == "Hadir" and guru["terlambat"]],
-        guru_pulang=[guru for guru in daftar_guru if sudah_guru and guru["status"] == "Hadir" and guru["izin_pulang"]],
+        guru_hadir=sum(
+            1 for guru in daftar_guru
+            if sudah_guru and guru["kehadiran"] == "Hadir" and guru["pilih"] != "Izin dinas"
+        ),
+        guru_tidak_masuk=[
+            guru for guru in daftar_guru
+            if sudah_guru and (guru["pilih"] or guru["kehadiran"] != "Hadir")
+        ],
     )
 
 NAMA_BULAN = [

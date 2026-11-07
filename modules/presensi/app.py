@@ -2205,12 +2205,14 @@ def guru():
         if not nama:
             flash('Nama guru belum diisi.', 'danger')
         else:
+            from portal.guru_akun import pisahkan_gelar
+            nama, gelar_baru = pisahkan_gelar(nama)
             cursor.execute("SELECT COALESCE(MAX(urutan), 0) + 1 AS urutan FROM guru")
             urutan = cursor.fetchone()["urutan"]
             try:
                 cursor.execute(
-                    "INSERT INTO guru (nama, urutan, aktif) VALUES (%s, %s, 1)",
-                    (nama, urutan),
+                    "INSERT INTO guru (nama, urutan, aktif, gelar) VALUES (%s, %s, 1, %s)",
+                    (nama[:120], urutan, gelar_baru or None),
                 )
                 conn.commit()
                 flash('Guru ditambahkan.', 'success')
@@ -2232,7 +2234,9 @@ def guru():
                 elif gelar_lama:
                     nama_simpan, gelar_simpan = nama[:120], ""
                 else:
-                    nama_simpan, gelar_simpan = nama[:120], ""
+                    from portal.guru_akun import pisahkan_gelar
+                    dasar, gelar_baru = pisahkan_gelar(nama)
+                    nama_simpan, gelar_simpan = dasar[:120], gelar_baru
                 cursor.execute(
                     "UPDATE guru SET nama = %s, gelar = %s WHERE id = %s",
                     (nama_simpan, gelar_simpan or None, guru_id),

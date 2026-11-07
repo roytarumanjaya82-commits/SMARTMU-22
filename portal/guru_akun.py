@@ -1,5 +1,7 @@
 """Akun guru mengikuti tabel guru di Presensi. Guru pengampu, piket, dan BK dapat login."""
 
+import re
+
 import pymysql
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -16,6 +18,46 @@ SANDI_AWAL = "guruSMPM22"
 
 def _rapi(nama):
     return " ".join(str(nama or "").split())
+
+
+def _token_gelar(kata):
+    """Singkatan gelar, misalnya S.Pd. atau M.Pd. Bukan potongan nama."""
+    if not re.fullmatch(r"[A-Za-z]{1,6}(?:\.[A-Za-z]{1,6})*\.?", kata or ""):
+        return False
+    if "." in kata:
+        return True
+    return kata.casefold() in {"se", "sh", "sip", "spd", "sag", "skom", "mpd", "mm", "amd"}
+
+
+def _terlihat_gelar(teks):
+    bagian = [kata for kata in re.split(r"[\s,]+", _rapi(teks)) if kata]
+    return bool(bagian) and all(_token_gelar(kata) for kata in bagian)
+
+
+def pisahkan_gelar(nama, gelar=""):
+    """Nama untuk username, dan gelar yang berdiri sendiri."""
+    nama = _rapi(nama)
+    gelar = _rapi(gelar)
+    if gelar:
+        for akhir in (f", {gelar}", f" {gelar}"):
+            if nama.casefold().endswith(akhir.casefold()) and len(nama) > len(akhir):
+                nama = _rapi(nama[: -len(akhir)].strip(" ,"))
+                break
+        return nama, gelar
+    if not nama:
+        return "", ""
+    bagian = [potong.strip() for potong in nama.split(",")]
+    ekor = []
+    while len(bagian) > 1 and _terlihat_gelar(bagian[-1]):
+        ekor.insert(0, bagian.pop())
+    if not ekor:
+        kata = nama.split()
+        while len(kata) > 1 and _token_gelar(kata[-1]):
+            ekor.insert(0, kata.pop())
+        if ekor:
+            return _rapi(" ".join(kata)), _rapi(" ".join(ekor))
+        return nama, ""
+    return _rapi(", ".join(bagian)), _rapi(", ".join(ekor))
 
 
 def _koneksi():
@@ -46,9 +88,16 @@ def siapkan():
                 cur.execute("SHOW COLUMNS FROM guru LIKE %s", (kolom,))
                 if cur.fetchone() is None:
                     cur.execute(f"ALTER TABLE guru ADD COLUMN {kolom} {tipe}")
-            cur.execute("SELECT id, nama, username, password_hash FROM guru WHERE aktif = 1")
-            for guru_id, nama, username, sandi in cur.fetchall():
-                akun = _rapi(nama)
+            cur.execute(
+                "SELECT id, nama, gelar, username, password_hash FROM guru WHERE aktif = 1"
+            )
+            for guru_id, nama, gelar, username, sandi in cur.fetchall():
+                akun, gelar_baru = pisahkan_gelar(nama, gelar)
+                if _rapi(nama) != akun or _rapi(gelar) != gelar_baru:
+                    cur.execute(
+                        "UPDATE guru SET nama = %s, gelar = %s WHERE id = %s",
+                        (akun, gelar_baru or None, guru_id),
+                    )
                 if username != akun:
                     cur.execute("UPDATE guru SET username = %s WHERE id = %s", (akun, guru_id))
                 if not sandi:
@@ -100,7 +149,7 @@ def reset(guru_id):
             row = cur.fetchone()
             if not row:
                 return None
-            akun = _rapi(row[0])
+            akun, _gelar = pisahkan_gelar(row[0])
             cur.execute(
                 "UPDATE guru SET username = %s, password_hash = %s WHERE id = %s",
                 (akun, generate_password_hash(SANDI_AWAL), guru_id),
@@ -205,7 +254,7 @@ def ganti_sandi(guru_id, lama, baru):
 
 def cari(username, password):
     """Dict akun jika guru piket atau guru BK, 'bukan_piket' jika sandi benar tetapi tidak berhak, selain itu None."""
-    akun = _rapi(username)
+    akun, _gelar = pisahkan_gelar(username)
     if not akun or not password:
         return None
     siapkan()

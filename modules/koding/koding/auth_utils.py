@@ -29,16 +29,19 @@ def login_user(user: dict):
             (user["id"],),
             one=True,
         )
-        if siswa:
-            from koding.tingkat_utils import tingkat_dari_nama_kelas
+        if not siswa:
+            session.clear()
+            return False
+        from koding.tingkat_utils import tingkat_dari_nama_kelas
 
-            session["siswa_id"] = siswa["id"]
-            session["kelas_id"] = siswa["kelas_id"]
-            session["nis"] = siswa["nis"]
-            session["nama_kelas"] = siswa.get("nama_kelas")
-            session["tingkat"] = siswa.get("tingkat") or tingkat_dari_nama_kelas(
-                siswa.get("nama_kelas")
-            )
+        session["siswa_id"] = siswa["id"]
+        session["kelas_id"] = siswa["kelas_id"]
+        session["nis"] = siswa["nis"]
+        session["nama_kelas"] = siswa.get("nama_kelas")
+        session["tingkat"] = siswa.get("tingkat") or tingkat_dari_nama_kelas(
+            siswa.get("nama_kelas")
+        )
+    return True
 
 
 def logout_user():
@@ -95,6 +98,10 @@ def siswa_required(view):
         if session.get("role") != "siswa":
             flash("Menu ini untuk siswa.", "danger")
             return redirect(url_for("admin.dashboard"))
+        if not session.get("siswa_id"):
+            flash("Akun siswa belum terhubung ke kelas. Hubungi guru koding.", "danger")
+            logout_user()
+            return redirect(url_for("auth.login"))
         return view(*args, **kwargs)
 
     return wrapped

@@ -22,7 +22,9 @@ def login():
             flash("Username atau password salah.", "danger")
             return render_template("auth/login.html")
 
-        login_user(user)
+        if not login_user(user):
+            flash("Akun siswa belum terhubung ke kelas. Hubungi guru koding.", "danger")
+            return render_template("auth/login.html")
         flash(f"Selamat datang, {user['nama_lengkap']}!", "success")
         nxt = request.args.get("next")
         if nxt:
@@ -34,9 +36,13 @@ def login():
 
 @bp.route("/logout")
 def logout():
-    dari_portal = bool(session.get("dari_portal"))
+    """Keluar dari Kelas Koding dan hapus sesi portal/SSO agar tidak langsung masuk lagi."""
     logout_user()
-    flash("Anda telah keluar.", "info")
-    if dari_portal:
-        return redirect("/pembelajaran/")
-    return redirect(url_for("auth.login"))
+    from sso import hapus
+
+    # Logout penuh lewat portal: bersihkan cookie portal + SSO + sesi koding.
+    respon = redirect("/logout")
+    hapus(respon)
+    respon.delete_cookie("smartmu_koding", path="/koding")
+    respon.delete_cookie("smartmu_koding", path="/")
+    return respon

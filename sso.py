@@ -46,9 +46,13 @@ def boleh_data(data, portal):
     if data.get("role") == "admin":
         return True
     if portal == "koding":
+        if data.get("role") in {"siswa_koding", "guru_koding"}:
+            return True
         from portal.akun import akses_username
 
         return portal in akses_username(data.get("username") or "")
+    if data.get("role") in {"siswa_koding", "guru_koding"}:
+        return portal == "koding"
     if data.get("role") == "orang_tua":
         return portal == "tahfidz"
     if data.get("role") == "guru_pengampu":
@@ -73,7 +77,7 @@ def cegah_ubah(request, pengecualian=()):
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return None
     data = baca(request)
-    if not data or data.get("role") in {"admin", "orang_tua"}:
+    if not data or data.get("role") in {"admin", "orang_tua", "siswa_koding", "guru_koding"}:
         return None
     if request.endpoint in pengecualian:
         return None

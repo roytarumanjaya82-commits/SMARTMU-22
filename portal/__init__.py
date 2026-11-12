@@ -129,6 +129,8 @@ def create_app():
     def modul_terlihat():
         if session.get("role") == "orang_tua":
             return tuple(modul for modul in MODUL if modul["kunci"] == "tahfidz")
+        if session.get("role") in {"siswa_koding", "guru_koding"}:
+            return ()
         if session.get("role") == "admin":
             return MODUL
         biasa = tuple(modul for modul in MODUL if not modul.get("hanya_admin"))
@@ -164,7 +166,14 @@ def create_app():
                 "nama": session.get("nama"),
                 "role": session.get("role"),
             }
-            if session.get("user_id") and session.get("role") in {"guru_piket", "guru_bk", "guru_pengampu", "orang_tua"}:
+            if session.get("user_id") and session.get("role") in {
+                "guru_piket",
+                "guru_bk",
+                "guru_pengampu",
+                "orang_tua",
+                "siswa_koding",
+                "guru_koding",
+            }:
                 muatan["id"] = session.get("user_id")
             if _tujuan_guru(session.get("user_id"), session.get("role")) == "/bk/":
                 muatan["bk"] = 1
@@ -194,6 +203,10 @@ def create_app():
             flash(f"Akun ini tidak dapat membuka {akun_db.NAMA_PORTAL[kunci]}.", "error")
         if session.get("role") == "orang_tua":
             return redirect(_tujuan_ortu())
+        if session.get("role") == "siswa_koding":
+            return redirect("/koding/")
+        if session.get("role") == "guru_koding":
+            return redirect("/koding/admin/")
         tujuan_guru = _tujuan_guru(session.get("user_id"), session.get("role"))
         if tujuan_guru:
             return redirect(tujuan_guru)
@@ -230,6 +243,10 @@ def create_app():
         if session.get("user_id"):
             if session.get("role") == "orang_tua":
                 return redirect(_tujuan_ortu())
+            if session.get("role") == "siswa_koding":
+                return redirect("/koding/")
+            if session.get("role") == "guru_koding":
+                return redirect("/koding/admin/")
             tujuan_guru = _tujuan_guru(session.get("user_id"), session.get("role"))
             if tujuan_guru:
                 return redirect(tujuan_guru)
@@ -265,8 +282,34 @@ def create_app():
                         flash("Akun guru ini belum mengampu mata pelajaran dan belum masuk jadwal piket.", "error")
                         return render_template("login.html", next=request.form.get("next") or "")
                     if not guru:
-                        flash("Username atau kata sandi salah.", "error")
-                        return render_template("login.html", next=request.form.get("next") or "")
+                        from portal.koding_akun import cari as cari_koding
+
+                        akun_koding = cari_koding(username, password)
+                        if not akun_koding:
+                            flash("Username atau kata sandi salah.", "error")
+                            return render_template("login.html", next=request.form.get("next") or "")
+                        session.clear()
+                        session["user_id"] = akun_koding["id"]
+                        session["username"] = akun_koding["username"]
+                        session["nama"] = akun_koding["nama"]
+                        session["role"] = akun_koding["role"]
+                        session["asal"] = "koding"
+                        if akun_koding["role"] == "siswa_koding":
+                            session["nis"] = akun_koding.get("nis")
+                            session["nama_kelas"] = akun_koding.get("nama_kelas")
+                            session["tingkat"] = akun_koding.get("tingkat")
+                            tujuan = "/koding/"
+                        else:
+                            tujuan = "/koding/admin/"
+                        return pasang(
+                            redirect(tujuan),
+                            {
+                                "id": akun_koding["id"],
+                                "username": akun_koding["username"],
+                                "nama": akun_koding["nama"],
+                                "role": akun_koding["role"],
+                            },
+                        )
                     session.clear()
                     session["user_id"] = guru["id"]
                     session["username"] = guru["username"]

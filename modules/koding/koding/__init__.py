@@ -45,20 +45,56 @@ def create_app():
             data = baca(request)
         except Exception:
             return None
+        if request.endpoint in {None, "static", "auth.login", "auth.logout"}:
+            return None
         if data and not boleh_data(data, "koding"):
             if session.get("dari_portal"):
                 session.clear()
-            if request.endpoint not in {None, "static", "auth.login"}:
-                return redirect("/?akses=koding")
-            return None
+            return redirect("/?akses=koding")
         if data:
             tertahan = cegah_ubah(request, {"auth.login", "auth.logout"})
             if tertahan is not None:
                 return tertahan
-        if request.endpoint in {None, "static", "auth.login"} or not data:
+        if not data:
             return None
         if session.get("user_id"):
             return None
+
+        role_sso = data.get("role")
+        if role_sso == "siswa_koding":
+            user = query(
+                "SELECT * FROM users WHERE username=%s AND role='siswa' AND aktif=1",
+                (data.get("username"),),
+                one=True,
+            )
+            if not user:
+                return redirect("/koding/login")
+            from koding.auth_utils import login_user
+
+            if not login_user(user):
+                return redirect("/koding/login")
+            session["dari_portal"] = True
+            return None
+
+        if role_sso == "guru_koding":
+            user = query(
+                "SELECT * FROM users WHERE username=%s AND role='guru' AND aktif=1",
+                (data.get("username"),),
+                one=True,
+            )
+            if not user:
+                user = query(
+                    "SELECT * FROM users WHERE role='guru' AND aktif=1 ORDER BY id LIMIT 1",
+                    one=True,
+                )
+            if not user:
+                return None
+            from koding.auth_utils import login_user
+
+            login_user(user)
+            session["dari_portal"] = True
+            return None
+
         guru = query(
             "SELECT * FROM users WHERE role='guru' AND aktif=1 ORDER BY id LIMIT 1",
             one=True,

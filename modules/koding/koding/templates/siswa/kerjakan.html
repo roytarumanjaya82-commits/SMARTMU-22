@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Kerjakan · {{ perc.judul }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ perc.judul }}</h1>
+  <p>{{ jenis_map[perc.jenis] }} · {{ soal|length }} soal · Durasi {{ perc.durasi_menit }} menit</p>
+</section>
+
+<div class="quiz-progress"><span></span></div>
+
+<form method="post" class="stack" id="form-ujian">
+  {% for s in soal %}
+  <div class="card">
+    <strong>Soal {{ loop.index }}</strong>
+    <p>{{ s.pertanyaan }}</p>
+    {% for key, teks in [('A', s.opsi_a), ('B', s.opsi_b), ('C', s.opsi_c), ('D', s.opsi_d)] %}
+    <label class="option">
+      <input type="radio" name="soal_{{ s.id }}" value="{{ key }}" required>
+      <span><strong>{{ key }}.</strong> {{ teks }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <div class="actions">
+    <button class="btn btn-accent" type="submit" onclick="return confirm('Kirim jawaban sekarang?')">Kumpulkan jawaban</button>
+  </div>
+</form>
+{% endblock %}

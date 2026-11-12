@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ item.judul }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ item.judul }}</h1>
+  <p>{{ item.deskripsi or '' }} · {{ jenis_map[item.jenis] }} · KKM {{ item.nilai_kkm }}</p>
+</section>
+
+<div class="card actions" style="margin-bottom:1rem;align-items:center;justify-content:space-between">
+  <div>
+    Status ujian:
+    {% if item.aktif %}
+    <span class="badge ok">Aktif</span>
+    <span class="muted"> — siswa dapat melihat & mengerjakan</span>
+    {% else %}
+    <span class="badge danger">Nonaktif</span>
+    <span class="muted"> — tersembunyi dari siswa</span>
+    {% endif %}
+  </div>
+  <form method="post" action="{{ url_for('admin.ujian_toggle_aktif', ujian_id=item.id) }}">
+    <input type="hidden" name="next" value="detail">
+    {% if item.aktif %}
+    <button class="btn btn-outline" type="submit">Nonaktifkan ujian</button>
+    {% else %}
+    <button class="btn btn-accent" type="submit">Aktifkan ujian</button>
+    {% endif %}
+  </form>
+</div>
+
+<div class="stack">
+  {% for s in soal %}
+  <div class="card">
+    <div style="margin-bottom:0.5rem">
+      <strong>Soal {{ s.nomor }}</strong>
+    </div>
+    <p>{{ s.pertanyaan }}</p>
+    <ol type="A">
+      <li>{{ s.opsi_a }}</li>
+      <li>{{ s.opsi_b }}</li>
+      <li>{{ s.opsi_c }}</li>
+      <li>{{ s.opsi_d }}</li>
+    </ol>
+    <span class="badge ok">Kunci: {{ s.kunci_jawaban }}</span>
+  </div>
+  {% else %}
+  <div class="card muted">Belum ada soal.</div>
+  {% endfor %}
+</div>
+<p style="margin-top:1rem"><a class="btn btn-outline" href="{{ url_for('admin.ujian') }}">Kembali</a></p>
+{% endblock %}

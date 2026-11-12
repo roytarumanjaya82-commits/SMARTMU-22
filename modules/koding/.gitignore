@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+koding/static/uploads/
+data/*.xlsx
+!data/.gitkeep

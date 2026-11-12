@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ item.judul }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ item.judul }}</h1>
+  <p>Kelas {{ item.tingkat }} · Semester {{ item.semester }}{% if item.ringkasan %} · {{ item.ringkasan }}{% endif %}</p>
+</section>
+<div class="grid grid-2">
+  <div class="card materi-content">
+    {% if item.file_path %}
+    <div class="file-box">
+      <span class="badge badge-file">{{ ext_label(item.file_tipe) }}</span>
+      <strong>{{ item.file_nama }}</strong>
+      <a class="btn btn-sm" href="{{ url_for('siswa.materi_unduh', materi_id=item.id) }}">Unduh berkas</a>
+    </div>
+    {% endif %}
+    {{ item.isi_html|safe }}
+    {% if item.contoh_kode %}
+    <h3>Contoh kode</h3>
+    <pre class="code-box">{{ item.contoh_kode }}</pre>
+    {% endif %}
+    <div class="actions" style="margin-top:1rem">
+      <a class="btn" href="{{ url_for('siswa.latihan') }}">Lanjut ke Latihan</a>
+      <a class="btn btn-outline" href="{{ url_for('siswa.materi_list', tingkat=item.tingkat, semester=item.semester) }}">Daftar materi</a>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Daftar materi</h3>
+    <div class="stack">
+      {% for m in semua %}
+      <a href="{{ url_for('siswa.materi_detail', materi_id=m.id) }}" {% if m.id==item.id %}style="font-weight:700"{% endif %}>
+        {{ m.urutan }}. {{ m.judul }}{% if m.file_tipe %} · {{ ext_label(m.file_tipe) }}{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

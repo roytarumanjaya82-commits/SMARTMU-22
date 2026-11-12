@@ -1,0 +1,7 @@
+USE koding_smpm22;
+
+ALTER TABLE materi
+  ADD COLUMN IF NOT EXISTS file_nama VARCHAR(255) NULL AFTER contoh_kode,
+  ADD COLUMN IF NOT EXISTS file_path VARCHAR(500) NULL AFTER file_nama,
+  ADD COLUMN IF NOT EXISTS file_tipe VARCHAR(20) NULL AFTER file_path,
+  ADD COLUMN IF NOT EXISTS file_ukuran INT NULL AFTER file_tipe;

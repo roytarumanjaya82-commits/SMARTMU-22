@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Kelas{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Manajemen Kelas</h1>
+  <p>Buat kelas sebelum mengimpor daftar siswa dari Excel.</p>
+</section>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Tambah kelas</h2>
+    <form method="post" class="form-grid">
+      <label>Nama kelas
+        <input name="nama_kelas" placeholder="Contoh: 8.1 atau 7.5" required>
+      </label>
+      <label>Tingkat
+        <select name="tingkat">
+          <option value="7">Kelas 7</option>
+          <option value="8">Kelas 8</option>
+          <option value="9">Kelas 9</option>
+        </select>
+      </label>
+      <label>Tahun ajaran
+        <input name="tahun_ajaran" value="2026/2027" required>
+      </label>
+      <label>Semester
+        <select name="semester">
+          <option>Ganjil</option>
+          <option>Genap</option>
+        </select>
+      </label>
+      <button class="btn" type="submit">Simpan</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Daftar kelas</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Kelas</th><th>Tingkat</th><th>Tahun</th><th>Siswa</th><th></th></tr></thead>
+        <tbody>
+          {% for k in data %}
+          <tr>
+            <td><strong>{{ k.nama_kelas }}</strong><br><small class="muted">{{ k.semester }}</small></td>
+            <td>{{ k.tingkat or '-' }}</td>
+            <td>{{ k.tahun_ajaran }}</td>
+            <td>{{ k.jumlah_siswa }}</td>
+            <td>
+              <form method="post" action="{{ url_for('admin.hapus_kelas', kelas_id=k.id) }}" onsubmit="return confirm('Hapus kelas ini beserta datanya?')">
+                <button class="btn btn-danger btn-sm" type="submit">Hapus</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="muted">Belum ada kelas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

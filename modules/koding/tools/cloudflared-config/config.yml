@@ -1,0 +1,7 @@
+﻿tunnel: 46e7c292-2f76-40d0-95fc-45a916a66ec3
+credentials-file: C:\Users\Dell_SMPM22\.cloudflared\46e7c292-2f76-40d0-95fc-45a916a66ec3.json
+
+ingress:
+  - hostname: koding.smpm22pamulang.sch.id
+    service: http://127.0.0.1:5001
+  - service: http_status:404

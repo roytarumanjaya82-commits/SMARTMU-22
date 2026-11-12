@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Nilai Saya{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Rekap Nilai Saya</h1>
+  <p>Nilai terbaik dari setiap kegiatan penilaian.</p>
+</section>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kegiatan</th><th>Jenis</th><th>Skor</th><th>Tanggal</th></tr></thead>
+      <tbody>
+        {% for n in data %}
+        <tr>
+          <td>{{ n.judul }}</td>
+          <td><span class="badge">{{ jenis_map[n.jenis] }}</span></td>
+          <td><strong>{{ n.skor }}</strong></td>
+          <td>{{ n.dinilai_at }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="muted">Belum ada nilai.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -40,6 +40,14 @@ MODUL = (
         "warna": "#0f6e56",
     },
     {
+        "kunci": "pembelajaran",
+        "href": "/pembelajaran/",
+        "nama": "Pembelajaran",
+        "ringkas": "Hasil belajar harian dan Kelas Koding.",
+        "warna": "#047857",
+        "hanya_admin": True,
+    },
+    {
         "kunci": "erapor",
         "href": "/erapor/",
         "nama": "eRapor",
@@ -123,13 +131,14 @@ def create_app():
             return tuple(modul for modul in MODUL if modul["kunci"] == "tahfidz")
         if session.get("role") == "admin":
             return MODUL
+        biasa = tuple(modul for modul in MODUL if not modul.get("hanya_admin"))
         if not session.get("user_id"):
-            return MODUL
+            return biasa
         try:
             punya = set(akun_db.akses(session["user_id"]))
         except pymysql.MySQLError:
             return ()
-        return tuple(modul for modul in MODUL if modul["kunci"] in punya)
+        return tuple(modul for modul in biasa if modul["kunci"] in punya)
 
     @app.context_processor
     def sisip():
@@ -324,10 +333,20 @@ def create_app():
             ("smartmu_tahfidz", "/tahfidz"),
             ("smartmu_bk", "/bk"),
             ("smartmu_inventaris", "/inventaris"),
+            ("smartmu_koding", "/koding"),
             ("remember_token", "/inventaris"),
         ):
             respon.delete_cookie(nama, path=jalur)
         return respon
+
+    @app.route("/pembelajaran/")
+    def pembelajaran():
+        if not session.get("user_id"):
+            return redirect(url_for("masuk", next="/pembelajaran/"))
+        if session.get("role") != "admin":
+            flash("Menu Pembelajaran hanya untuk admin.", "error")
+            return redirect(url_for("beranda"))
+        return render_template("pembelajaran.html")
 
     def wajib_admin():
         if not session.get("user_id"):

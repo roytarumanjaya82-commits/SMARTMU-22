@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Penilaian{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Menu Penilaian</h1>
+  <p>Rekap nilai, export Excel, dan reset percobaan siswa (agar boleh mengerjakan ulang).</p>
+</section>
+
+<div class="card" style="margin-bottom:1rem">
+  <div class="actions">
+    <a class="btn btn-accent" href="{{ url_for('penilaian.reset') }}">Reset Percobaan Siswa</a>
+  </div>
+  <p class="muted" style="margin:0.6rem 0 0">Siswa tidak bisa mengulang latihan/ulangan/STS/SAS sendiri. Hanya guru yang mereset.</p>
+</div>
+
+<div class="grid grid-3">
+  {% for key, label in jenis_map.items() %}
+  <a class="card" href="{{ url_for('penilaian.rekap', jenis=key) }}" style="color:inherit">
+    <span class="badge">{{ key }}</span>
+    <h3>{{ label }}</h3>
+    <p class="muted">Lihat rekap per kelas dan unduh Excel.</p>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
+

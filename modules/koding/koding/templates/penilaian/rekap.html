@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Rekap {{ jenis_map[jenis] }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Rekap {{ jenis_map[jenis] }}</h1>
+  <p>Pilih kelas untuk melihat nilai siswa dan ekspor ke Excel.</p>
+</section>
+
+<div class="card" style="margin-bottom:1rem">
+  <form method="get" class="actions">
+    <input type="hidden" name="jenis" value="{{ jenis }}">
+    <label style="min-width:220px">Kelas
+      <select name="kelas_id" onchange="this.form.submit()">
+        {% for k in kelas_list %}
+        <option value="{{ k.id }}" {% if kelas_id==k.id %}selected{% endif %}>{{ k.nama_kelas }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <a class="btn" href="{{ url_for('penilaian.export_excel', jenis=jenis, kelas_id=kelas_id) }}">Export Excel</a>
+    <a class="btn btn-outline" href="{{ url_for('penilaian.index') }}">Semua jenis</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>No</th><th>NIS</th><th>Nama</th>
+          {% for u in ujian_list %}<th>{{ u.judul }}</th>{% endfor %}
+          <th>Rata-rata</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ r.nis }}</td>
+          <td>{{ r.nama_siswa }}</td>
+          {% for u in ujian_list %}
+          <td>{% if r.skor[u.id] is not none %}{{ r.skor[u.id] }}{% else %}<span class="muted">-</span>{% endif %}</td>
+          {% endfor %}
+          <td>{% if r.rata is not none %}<strong>{{ r.rata }}</strong>{% else %}-{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 4 + ujian_list|length }}" class="muted">Belum ada data siswa/nilai.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

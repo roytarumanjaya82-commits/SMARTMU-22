@@ -1,4 +1,4 @@
-"""SMARTMU 22 — satu aplikasi untuk Presensi, eRapor, Tahfidz, Rapor BK, dan Inventaris."""
+"""SMARTMU 22 — satu aplikasi untuk Presensi, eRapor, Tahfidz, Rapor BK, Inventaris, dan Kelas Koding."""
 
 import importlib.util
 import sys
@@ -67,6 +67,12 @@ def _muat_inventaris():
     return muat()
 
 
+def _muat_koding():
+    from muat_koding import muat
+
+    return muat()
+
+
 def _wajib_garis_miring(aplikasi):
     def wsgi(environ, start_response):
         if environ.get("PATH_INFO", "") == "":
@@ -129,6 +135,7 @@ _SKRIP = """
 _MENU = (
     ("/", "Beranda"),
     ("/presensi/", "Presensi"),
+    ("/pembelajaran/", "Pembelajaran"),
     ("/erapor/", "eRapor"),
     ("/tahfidz/", "Tahfidz"),
     ("/bk/", "Rapor BK"),
@@ -142,6 +149,7 @@ _PINTU = (
     ("/tahfidz", "tahfidz", ("/login", "/static/")),
     ("/bk", "bk", ()),
     ("/inventaris", "inventaris", ("/login", "/static/")),
+    ("/koding", "koding", ("/login", "/static/")),
 )
 
 
@@ -308,7 +316,7 @@ def _bebas_rawat(path):
 
 
 def _portal_rawat(path):
-    for awalan in ("/presensi", "/erapor", "/tahfidz", "/bk", "/inventaris"):
+    for awalan in ("/presensi", "/erapor", "/tahfidz", "/bk", "/inventaris", "/koding"):
         if path == awalan or path.startswith(awalan + "/"):
             return True
     return False
@@ -347,9 +355,18 @@ a{{color:#0c4f3b;font-weight:700}}
 def _batang(path, masuk, menu):
     tautan = []
     for href, nama in menu:
-        nyala = " on" if (href == "/" and path in {"/", "/login"}) or (
+        if nama == "Pembelajaran" and (
+            path.startswith("/pembelajaran")
+            or path.startswith("/koding")
+            or path.startswith("/presensi/hasil-belajar")
+        ):
+            nyala = " on"
+        elif (href == "/" and path in {"/", "/login"}) or (
             href != "/" and (path == href.rstrip("/") or path.startswith(href))
-        ) else ""
+        ):
+            nyala = " on"
+        else:
+            nyala = ""
         tautan.append(f'<a class="{nyala.strip()}" href="{href}">{nama}</a>')
     akun = '<a href="/logout">Keluar</a>' if masuk else '<a href="/login">Masuk</a>'
     html = (
@@ -436,6 +453,7 @@ def bangun():
                 "/tahfidz": _wajib_garis_miring(_muat_tahfidz()),
                 "/bk": _wajib_garis_miring(_muat_bk()),
                 "/inventaris": _wajib_garis_miring(_muat_inventaris()),
+                "/koding": _wajib_garis_miring(_muat_koding()),
             },
         )
     )

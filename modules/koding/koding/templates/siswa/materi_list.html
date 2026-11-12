@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Materi Kelas {{ tingkat }} · {{ semester }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Materi Kelas {{ tingkat }} · Semester {{ semester }}</h1>
+  <p>Baca penjelasan materi atau unduh berkas PDF/DOC/PPT sebelum mengerjakan latihan dan ulangan.</p>
+</section>
+
+<div class="actions" style="margin-bottom:1rem">
+  <a class="btn {% if semester=='Ganjil' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('siswa.materi_list', semester='Ganjil') }}">Ganjil</a>
+  <a class="btn {% if semester=='Genap' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('siswa.materi_list', semester='Genap') }}">Genap</a>
+</div>
+
+<div class="grid grid-2">
+  {% for m in data %}
+  <a class="card" href="{{ url_for('siswa.materi_detail', materi_id=m.id) }}" style="color:inherit">
+    <span class="badge">Kelas {{ m.tingkat }} · Pertemuan {{ m.urutan }}</span>
+    {% if m.file_tipe %}<span class="badge badge-file">{{ ext_label(m.file_tipe) }}</span>{% endif %}
+    <h3>{{ m.judul }}</h3>
+    <p class="muted">{{ m.ringkasan or '' }}</p>
+  </a>
+  {% else %}
+  <div class="card muted">Belum ada materi untuk filter ini.</div>
+  {% endfor %}
+</div>
+{% endblock %}

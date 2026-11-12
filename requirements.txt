@@ -13,3 +13,4 @@ google-auth-oauthlib==1.2.1
 google-api-python-client==2.149.0
 mysql-connector-python==9.4.0
 pandas==2.3.3
+reportlab==5.1.0

@@ -36,7 +36,7 @@
       {% endfor %}
     {% endwith %}
     {% if session.role == 'admin' and rawat %}
-    <p class="peringatan">Maintenance sedang aktif. Presensi, eRapor, Tahfidz, Rapor BK, dan Inventaris menampilkan tulisan maintenance.</p>
+    <p class="peringatan">Maintenance sedang aktif. Presensi, eRapor, Tahfidz, Rapor BK, Inventaris, dan Kelas Koding menampilkan tulisan maintenance.</p>
     {% endif %}
     <p class="sapa">Selamat datang, <strong>{{ session.nama }}</strong>. Pilih portal yang akan dibuka.</p>
     {% if not modul_list %}

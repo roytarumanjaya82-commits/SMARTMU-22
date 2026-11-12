@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Guru{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Dashboard Guru Koding</h1>
+  <p>Kelola materi, soal interaktif, daftar siswa per kelas (Excel), serta penilaian latihan hingga sumatif akhir semester.</p>
+</section>
+
+<div class="grid grid-4" style="margin-bottom:1rem">
+  <div class="card"><div class="muted">Kelas</div><div class="stat-value">{{ stats.kelas }}</div></div>
+  <div class="card"><div class="muted">Siswa</div><div class="stat-value">{{ stats.siswa }}</div></div>
+  <div class="card"><div class="muted">Materi</div><div class="stat-value">{{ stats.materi }}</div></div>
+  <div class="card"><div class="muted">Nilai masuk</div><div class="stat-value">{{ stats.nilai }}</div></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card stack">
+    <h2>Aksi cepat</h2>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('admin.siswa') }}">Impor Siswa Excel</a>
+      <a class="btn btn-outline" href="{{ url_for('admin.blanko_siswa') }}">Blanko Excel</a>
+      <a class="btn btn-accent" href="{{ url_for('penilaian.index') }}">Menu Penilaian</a>
+      <a class="btn btn-outline" href="{{ url_for('admin.materi') }}">Lihat Materi</a>
+    </div>
+    <p class="muted">Aplikasi web responsif — buka dari HP/tablet/laptop di jaringan sekolah dengan alamat server yang sama.</p>
+  </div>
+  <div class="card">
+    <h2>Nilai terbaru</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Siswa</th><th>Ujian</th><th>Skor</th></tr></thead>
+        <tbody>
+          {% for r in recent %}
+          <tr>
+            <td>{{ r.nama_siswa }}<br><small class="muted">{{ r.nama_kelas }}</small></td>
+            <td>{{ r.judul }}<br><span class="badge">{{ JENIS_UJIAN[r.jenis] }}</span></td>
+            <td><strong>{{ r.skor }}</strong></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="muted">Belum ada nilai.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

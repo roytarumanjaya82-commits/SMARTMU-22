@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ item.judul }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ item.judul }}</h1>
+  <p>Kelas {{ item.tingkat }} · {{ item.semester }} · Pertemuan {{ item.urutan }}{% if item.ringkasan %} · {{ item.ringkasan }}{% endif %}</p>
+</section>
+
+<div class="card" style="margin-bottom:1rem">
+  <h3 style="margin-top:0">Berkas materi</h3>
+  {% if item.file_path %}
+  <p>
+    <span class="badge badge-file">{{ ext_label(item.file_tipe) }}</span>
+    <strong>{{ item.file_nama }}</strong>
+    {% if item.file_ukuran %}
+    <span class="muted">({{ '%.1f'|format(item.file_ukuran / 1024 / 1024) }} MB)</span>
+    {% endif %}
+  </p>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('admin.materi_unduh', materi_id=item.id) }}">Unduh berkas</a>
+    <form method="post" action="{{ url_for('admin.materi_hapus_berkas', materi_id=item.id) }}" onsubmit="return confirm('Hapus berkas ini?')">
+      <button class="btn btn-outline" type="submit">Hapus berkas</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted">Belum ada berkas PDF/DOC/PPT.</p>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('admin.materi_upload_berkas', materi_id=item.id) }}" enctype="multipart/form-data" class="form-grid" style="margin-top:1rem">
+    <label>{% if item.file_path %}Ganti berkas{% else %}Lampirkan berkas{% endif %} (PDF / DOC / PPT)
+      <input type="file" name="berkas" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
+    </label>
+    <button class="btn btn-accent" type="submit">Simpan berkas</button>
+  </form>
+</div>
+
+<div class="card materi-content">
+  {{ item.isi_html|safe }}
+  {% if item.contoh_kode %}
+  <h3>Contoh kode</h3>
+  <pre class="code-box">{{ item.contoh_kode }}</pre>
+  {% endif %}
+</div>
+
+<div class="actions" style="margin-top:1rem">
+  <a class="btn btn-outline" href="{{ url_for('admin.materi') }}">Kembali</a>
+  <form method="post" action="{{ url_for('admin.materi_hapus', materi_id=item.id) }}" onsubmit="return confirm('Hapus materi ini beserta berkasnya?')">
+    <button class="btn btn-outline" type="submit">Hapus materi</button>
+  </form>
+</div>
+{% endblock %}

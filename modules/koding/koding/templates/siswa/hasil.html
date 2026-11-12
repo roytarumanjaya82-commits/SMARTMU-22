@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Hasil{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Hasil: {{ perc.judul }}</h1>
+  <p>{{ jenis_map[perc.jenis] }}</p>
+</section>
+
+<div class="card" style="margin-bottom:1rem;text-align:center">
+  <div class="muted">Skor Anda</div>
+  <div class="score-big">{{ perc.skor }}</div>
+  {% if perc.skor >= perc.nilai_kkm %}
+  <span class="badge ok">Tuntas (KKM {{ perc.nilai_kkm }})</span>
+  {% else %}
+  <span class="badge danger">Belum tuntas (KKM {{ perc.nilai_kkm }})</span>
+  {% endif %}
+</div>
+
+{% if perc.tampil_pembahasan %}
+<div class="stack">
+  {% for d in detail %}
+  <div class="card">
+    <strong>Soal {{ d.nomor }}</strong>
+    <p>{{ d.pertanyaan }}</p>
+    <p>
+      Jawaban Anda:
+      <strong>{{ d.jawaban or '-' }}</strong>
+      {% if d.benar %}<span class="badge ok">Benar</span>{% else %}<span class="badge danger">Salah</span>{% endif %}
+    </p>
+    <p>Kunci: <strong>{{ d.kunci_jawaban }}</strong></p>
+    {% if d.pembahasan %}<p class="muted">Pembahasan: {{ d.pembahasan }}</p>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="actions" style="margin-top:1rem">
+  <a class="btn" href="{{ url_for('siswa.dashboard') }}">Beranda</a>
+  <a class="btn btn-outline" href="{{ url_for('siswa.nilai_saya') }}">Nilai saya</a>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Siswa{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Daftar Siswa per Kelas</h1>
+  <p>Unduh blanko Excel, isi NIS &amp; nama siswa, lalu unggah kembali. Akun login dibuat otomatis. Cetak PDF untuk membagikan username &amp; password ke siswa.</p>
+</section>
+
+<div class="card stack" style="margin-bottom:1rem">
+  <form method="get" class="actions">
+    <label style="min-width:220px">Pilih kelas
+      <select name="kelas_id" onchange="this.form.submit()">
+        {% for k in kelas_list %}
+        <option value="{{ k.id }}" {% if kelas_id==k.id %}selected{% endif %}>{{ k.nama_kelas }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+
+  {% if kelas_id %}
+  <div class="actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.blanko_siswa', kelas_id=kelas_id) }}">Unduh Blanko Excel</a>
+    <a class="btn" href="{{ url_for('admin.cetak_pdf_siswa', kelas_id=kelas_id) }}">Cetak PDF Login</a>
+    <a class="btn btn-outline" href="{{ url_for('admin.cetak_pdf_siswa', kelas_id=kelas_id, reset=1) }}"
+       onclick="return confirm('Reset password semua siswa kelas ini ke 123456, lalu unduh PDF?')">Reset PW &amp; Cetak PDF</a>
+  </div>
+  <form method="post" action="{{ url_for('admin.impor_siswa') }}" enctype="multipart/form-data" class="form-grid">
+    <input type="hidden" name="kelas_id" value="{{ kelas_id }}">
+    <label>Unggah file Excel siswa
+      <input type="file" name="file_excel" accept=".xlsx,.xls" required>
+    </label>
+    <button class="btn" type="submit">Impor ke kelas ini</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Siswa terdaftar</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>NIS</th><th>Nama</th><th>JK</th><th>Username</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for s in siswa_list %}
+        <tr>
+          <td>{{ s.nis }}</td>
+          <td>{{ s.nama_siswa }}</td>
+          <td>{{ s.jenis_kelamin or '-' }}</td>
+          <td><code>{{ s.username or '-' }}</code></td>
+          <td>
+            <form method="post" action="{{ url_for('admin.hapus_siswa', siswa_id=s.id) }}" onsubmit="return confirm('Hapus siswa ini?')">
+              <button class="btn btn-danger btn-sm" type="submit">Hapus</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="muted">Belum ada siswa. Unduh blanko lalu impor Excel.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Reset Percobaan{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Reset Percobaan Siswa</h1>
+  <p>Siswa tidak bisa mengulang sendiri. Guru mereset di sini agar siswa boleh mengerjakan ulang.</p>
+</section>
+
+<div class="card" style="margin-bottom:1rem">
+  <form method="get" class="form-grid">
+    <div class="actions">
+      <label style="min-width:180px">Jenis
+        <select name="jenis" onchange="this.form.submit()">
+          {% for key, label in jenis_map.items() %}
+          <option value="{{ key }}" {% if jenis==key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label style="min-width:160px">Kelas
+        <select name="kelas_id" onchange="this.form.submit()">
+          {% for k in kelas_list %}
+          <option value="{{ k.id }}" {% if kelas_id==k.id %}selected{% endif %}>{{ k.nama_kelas }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label style="min-width:260px">Ujian
+        <select name="ujian_id" onchange="this.form.submit()">
+          {% for u in ujian_list %}
+          <option value="{{ u.id }}" {% if ujian_id==u.id %}selected{% endif %}>
+            [{{ u.tingkat }}/{{ u.semester }}] {{ u.judul }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+  </form>
+</div>
+
+{% if ujian_id and kelas_id %}
+<div class="card" style="margin-bottom:1rem">
+  <form method="post" action="{{ url_for('penilaian.reset_kelas') }}" onsubmit="return confirm('Reset SEMUA siswa di kelas ini untuk ujian terpilih?')">
+    <input type="hidden" name="jenis" value="{{ jenis }}">
+    <input type="hidden" name="kelas_id" value="{{ kelas_id }}">
+    <input type="hidden" name="ujian_id" value="{{ ujian_id }}">
+    <button class="btn btn-danger" type="submit">Reset semua siswa di kelas ini</button>
+    <a class="btn btn-outline" href="{{ url_for('penilaian.rekap', jenis=jenis, kelas_id=kelas_id) }}">Kembali ke rekap</a>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>NIS</th><th>Nama</th><th>Nilai</th><th>Status</th><th>Tanggal</th><th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.nis }}</td>
+          <td>{{ r.nama_siswa }}</td>
+          <td>{% if r.skor is not none %}<strong>{{ r.skor }}</strong>{% else %}<span class="muted">-</span>{% endif %}</td>
+          <td>
+            {% if r.skor is not none %}
+            <span class="badge ok">Selesai</span>
+            {% elif r.status_terakhir == 'berlangsung' %}
+            <span class="badge warn">Berlangsung</span>
+            {% else %}
+            <span class="badge">Belum</span>
+            {% endif %}
+          </td>
+          <td>{{ r.dinilai_at or '-' }}</td>
+          <td>
+            {% if r.skor is not none or r.status_terakhir %}
+            <form method="post" action="{{ url_for('penilaian.reset_siswa') }}" onsubmit="return confirm('Reset percobaan {{ r.nama_siswa }}?')">
+              <input type="hidden" name="siswa_id" value="{{ r.siswa_id }}">
+              <input type="hidden" name="ujian_id" value="{{ ujian_id }}">
+              <input type="hidden" name="kelas_id" value="{{ kelas_id }}">
+              <input type="hidden" name="jenis" value="{{ jenis }}">
+              <button class="btn btn-sm btn-danger" type="submit">Reset</button>
+            </form>
+            {% else %}
+            <span class="muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="muted">Pilih kelas dan ujian, atau belum ada data siswa.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

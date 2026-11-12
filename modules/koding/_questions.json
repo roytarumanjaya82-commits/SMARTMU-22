@@ -1,0 +1,477 @@
+[
+  {
+    "no": 1,
+    "question": "Bahasa pemrograman Python pertama kali diciptakan dan dikembangkan oleh...",
+    "options": {
+      "A": ". Dennis Ritchie",
+      "B": "Guido van Rossum",
+      "C": "James Gosling",
+      "D": "Linus Torvalds"
+    },
+    "answer": "B",
+    "materi": "Pengenalan Python"
+  },
+  {
+    "no": 2,
+    "question": "Fungsi utama dari perintah print() dalam bahasa Python adalah...",
+    "options": {
+      "A": "Mengubah tipe data variabel",
+      "B": "Mengulangi blok kode tertentu",
+      "C": "Menampilkan output ke layar",
+      "D": "Menerima masukan dari pengguna"
+    },
+    "answer": "C",
+    "materi": "Perintah Output Dasar"
+  },
+  {
+    "no": 3,
+    "question": "Manakah sintaksis perintah print() yang benar untuk menampilkan tulisan Halo Informatika ?",
+    "options": {
+      "A": "print(Halo Informatika)",
+      "B": "Print(\"Halo Informatika\")",
+      "C": "echo \"Halo Informatika\"",
+      "D": "print(\"Halo Informatika\")"
+    },
+    "answer": "D",
+    "materi": "Tipe Data String & Output"
+  },
+  {
+    "no": 4,
+    "question": "Dalam pemrograman Python, variabel berfungsi sebagai...",
+    "options": {
+      "A": "Wadah atau tempat untuk menyimpan nilai data",
+      "B": "Perintah untuk menghentikan program",
+      "C": "Layar untuk menampilkan teks",
+      "D": "Alat untuk menghubungkan komputer ke internet"
+    },
+    "answer": "A",
+    "materi": "Variabel"
+  },
+  {
+    "no": 5,
+    "question": "Manakah penulisan nama variabel berikut yang TIDAK diperbolehkan di Python?",
+    "options": {
+      "A": "nama_siswa",
+      "B": "umur20",
+      "C": "2nama",
+      "D": "_alamat"
+    },
+    "answer": "C",
+    "materi": "Aturan Variabel"
+  },
+  {
+    "no": 6,
+    "question": "Tipe data yang digunakan untuk menyimpan kumpulan karakter atau teks adalah...",
+    "options": {
+      "A": "int",
+      "B": "str",
+      "C": "float",
+      "D": "boolean"
+    },
+    "answer": "B",
+    "materi": "Tipe Data"
+  },
+  {
+    "no": 7,
+    "question": "Jika variabel nilai = 85 , maka tipe data dari variabel nilai tersebut adalah...",
+    "options": {
+      "A": "integer ( int )",
+      "B": "string",
+      "C": "float",
+      "D": "boolean"
+    },
+    "answer": "A",
+    "materi": "Tipe Data"
+  },
+  {
+    "no": 8,
+    "question": "Tipe data di bawah ini yang digunakan untuk menyimpan nilai desimal/pecahan adalah...",
+    "options": {
+      "A": "str",
+      "B": "int",
+      "C": "float",
+      "D": "list"
+    },
+    "answer": "C",
+    "materi": "Tipe Data"
+  },
+  {
+    "no": 9,
+    "question": "Dua nilai yang mungkin dimiliki oleh tipe data Boolean adalah...",
+    "options": {
+      "A": "1 dan 0",
+      "B": "True dan False",
+      "C": "Yes dan No",
+      "D": "High dan Low"
+    },
+    "answer": "B",
+    "materi": "Tipe Data Boolean"
+  },
+  {
+    "no": 10,
+    "question": "Simbol aritmatika yang digunakan untuk operasi perkalian di bahasa Python adalah...",
+    "options": {
+      "A": "x",
+      "B": ".",
+      "C": "*",
+      "D": "^"
+    },
+    "answer": "C",
+    "materi": "Operator Aritmatika"
+  },
+  {
+    "no": 11,
+    "question": "Simbol yang digunakan untuk pembagian yang menghasilkan nilai desimal pada Python adalah...",
+    "options": {
+      "A": "/",
+      "B": ":",
+      "C": "%",
+      "D": "//"
+    },
+    "answer": "A",
+    "materi": "Operator Aritmatika"
+  },
+  {
+    "no": 12,
+    "question": "Karakter yang digunakan untuk membuat komentar satu baris yang diabaikan oleh eksekusi Python adalah...",
+    "options": {
+      "A": "//",
+      "B": "/*",
+      "C": "#",
+      "D": "--"
+    },
+    "answer": "C",
+    "materi": "Komentar (Comments)"
+  },
+  {
+    "no": 13,
+    "question": "Fungsi bawaan Python yang digunakan untuk menerima masukan data dari pengguna melalui keyboard adalah...",
+    "options": {
+      "A": "get()",
+      "B": "scanf()",
+      "C": "read()",
+      "D": "input()"
+    },
+    "answer": "D",
+    "materi": "Input Pengguna"
+  },
+  {
+    "no": 14,
+    "question": "Secara bawaan ( default ), data yang dimasukkan melalui perintah input() di Python selalu bertipe data...",
+    "options": {
+      "A": "int",
+      "B": "float",
+      "C": "str",
+      "D": "bool"
+    },
+    "answer": "C",
+    "materi": "Input Pengguna"
+  },
+  {
+    "no": 15,
+    "question": "Kata kunci yang digunakan untuk memulai penulisan struktur percabangan/kondisi di Python adalah...",
+    "options": {
+      "A": "for",
+      "B": "while",
+      "C": "if",
+      "D": "switch"
+    },
+    "answer": "C",
+    "materi": "Percabangan (if)"
+  },
+  {
+    "no": 16,
+    "question": "Indentasi (spasi di awal baris kode) dalam bahasa Python berfungsi untuk...",
+    "options": {
+      "A": "Mempercantik tampilan tulisan saja",
+      "B": "Menandai blok kode tertentu (seperti isi if atau perulangan)",
+      "C": "Menghapus baris kode yang salah",
+      "D": "Mengubah tipe data"
+    },
+    "answer": "B",
+    "materi": "Syntax & Indentasi"
+  },
+  {
+    "no": 17,
+    "question": ": Operator perbandingan yang digunakan untuk membandingkan apakah dua nilai \"sama dengan\" adalah...",
+    "options": {
+      "A": "==",
+      "B": "=",
+      "C": "===",
+      "D": ":="
+    },
+    "answer": "A",
+    "materi": "Operator Perbandingan"
+  },
+  {
+    "no": 18,
+    "question": "Simbol operator perbandingan untuk menyatakan \"tidak sama dengan\" di Python adalah...",
+    "options": {
+      "A": "<>",
+      "B": "!=",
+      "C": "=!",
+      "D": "not ="
+    },
+    "answer": "B",
+    "materi": "Operator Perbandingan"
+  },
+  {
+    "no": 19,
+    "question": "Perulangan yang sangat cocok digunakan ketika kita sudah mengetahui pasti jumlah perulangannya adalah...",
+    "options": {
+      "A": "if",
+      "B": "else",
+      "C": "for",
+      "D": "input"
+    },
+    "answer": "C",
+    "materi": "Perulangan (for)"
+  },
+  {
+    "no": 20,
+    "question": "Struktur data list di Python dituliskan dengan mengapit elemen-elemennya menggunakan kurung...",
+    "options": {
+      "A": "Kurung kurawal { }",
+      "B": "Tanda petik \" \"",
+      "C": "Kurung biasa ( )",
+      "D": "Kurung siku [ ]"
+    },
+    "answer": "D",
+    "materi": "Tipe Data List"
+  },
+  {
+    "no": 21,
+    "question": "Pesan kesalahan yang akan muncul di layar jika terjadi kesalahan penulisan tatabahasa kode Python adalah...",
+    "options": {},
+    "answer": "A",
+    "materi": "Error Handling & Syntax"
+  },
+  {
+    "no": 22,
+    "question": "Perhatikan kode berikut: a = 10 b = 15 c = a + b print(c) Output dari kode di atas adalah...",
+    "options": {
+      "A": "1015",
+      "B": "25",
+      "C": "a + b",
+      "D": "Error"
+    },
+    "answer": "B",
+    "materi": "Operator Aritmatika & Variabel"
+  },
+  {
+    "no": 23,
+    "question": "Indeks pertama pada struktur data Python (seperti string atau list) selalu dimulai dari angka...",
+    "options": {
+      "A": "yntaxError",
+      "B": "TypeError",
+      "C": "NameError",
+      "D": "ValueError E. 1"
+    },
+    "answer": "C",
+    "materi": "Indeksasi (Indexing)"
+  },
+  {
+    "no": 24,
+    "question": "Perhatikan potongan kode berikut: teks1 = \"7\" teks2 = \"3\" print(teks1 + teks2) Keluaran ( output ) yang dihasilkan dari kode tersebut adalah...",
+    "options": {
+      "A": "10",
+      "B": "73",
+      "C": "7 3",
+      "D": "Error"
+    },
+    "answer": "D",
+    "materi": "Manipulasi String"
+  },
+  {
+    "no": 25,
+    "question": "Supaya data input dari pengguna yang berupa teks angka dapat dihitung secara matematika, fungsi pengubah yang digunakan adalah...",
+    "options": {
+      "A": "str()",
+      "B": "int()",
+      "C": "text()",
+      "D": "convert()"
+    },
+    "answer": "B",
+    "materi": "Konversi Tipe Data"
+  },
+  {
+    "no": 26,
+    "question": "Berapakah hasil dari eksekusi program berikut? hasil = 15 % 4 print(hasil)",
+    "options": {
+      "A": "3",
+      "B": "3.75",
+      "C": "4",
+      "D": "1"
+    },
+    "answer": "A",
+    "materi": "Operator Modulus"
+  },
+  {
+    "no": 27,
+    "question": "Hasil keluaran dari kode print(17 // 3) adalah...",
+    "options": {
+      "A": "5.66",
+      "B": "5",
+      "C": "2",
+      "D": "6"
+    },
+    "answer": "B",
+    "materi": "Operator Floor Division"
+  },
+  {
+    "no": 28,
+    "question": "Perhatikan kode Python berikut: nilai = 70 if nilai >= 75: print(\"Lulus\") else: print(\"Remedial\") Output yang muncul di layar adalah...",
+    "options": {
+      "A": "Lulus",
+      "B": "Remedial",
+      "C": "True",
+      "D": "Error"
+    },
+    "answer": "B",
+    "materi": "Percabangan (if-else)"
+  },
+  {
+    "no": 29,
+    "question": "Perhatikan kode perulangan berikut: for i in range(3): print(i) Angka berapa sajakah yang akan dicetak di layar?",
+    "options": {
+      "A": "1, 2",
+      "B": "0, 1, 2, 3",
+      "C": "0, 1, 2",
+      "D": "1, 2, 3"
+    },
+    "answer": "C",
+    "materi": "Perulangan & Fungsi range()"
+  },
+  {
+    "no": 30,
+    "question": "Perhatikan kode berikut: buah = [\"Apel\", \"Pisang\", \"Jeruk\", \"Mangga\"] print(buah[1]) Output yang akan tampil pada layar adalah...",
+    "options": {
+      "A": "Apel",
+      "B": "Mangga",
+      "C": "Pisang",
+      "D": "Jeruk"
+    },
+    "answer": "C",
+    "materi": "Pengindeksan List"
+  },
+  {
+    "no": 31,
+    "question": "Hasil dari potongan kode print(2 ** 3) adalah...",
+    "options": {
+      "A": "6",
+      "B": "5",
+      "C": "9",
+      "D": "8"
+    },
+    "answer": "D",
+    "materi": "Operator Aritmatika"
+  },
+  {
+    "no": 32,
+    "question": "Perhatikan potongan kode berikut: x = 1 while x < 4: print(x) x = x + 1 Berapa kalilah perulangan tersebut mencetak nilai x ?",
+    "options": {
+      "A": "2 kali",
+      "B": "3 kali",
+      "C": "4 kali",
+      "D": "Berulang tanpa henti (infinite loop)"
+    },
+    "answer": "B",
+    "materi": "Perulangan (while)"
+  },
+  {
+    "no": 33,
+    "question": "Apakah hasil eksekusi dari kode print(len(\"Python\")) ?",
+    "options": {
+      "A": "0",
+      "B": "7",
+      "C": "6",
+      "D": "5"
+    },
+    "answer": "C",
+    "materi": "Fungsi Bawaan Python (len)"
+  },
+  {
+    "no": 34,
+    "question": "Perhatikan potongan kode berikut: a = 5 b = 10 print(a > 2 and b < 8) Output yang dihasilkan adalah...",
+    "options": {
+      "A": "True",
+      "B": "False",
+      "C": "None",
+      "D": "Error"
+    },
+    "answer": "B",
+    "materi": "Operator Logika"
+  },
+  {
+    "no": 35,
+    "question": "Analisislah program di bawah ini: skor = 80 if skor >= 90: print(\"Predikat A\") elif skor >= 80: print(\"Predikat B\") elif skor >= 70: print(\"Predikat C\") else: print(\"Predikat D\") Manakah output yang benar sesuai alur eksekusi program di atas?",
+    "options": {
+      "A": "Predikat B",
+      "B": "Predikat A",
+      "C": "Predikat B dan Predikat C",
+      "D": "Predikat D"
+    },
+    "answer": "A",
+    "materi": "Logika Percabangan Majeumbuk (elif)"
+  },
+  {
+    "no": 36,
+    "question": "Seorang siswa kelas 7 menuliskan program sebagai berikut: umur = 13 print(\"Umur saya adalah \" + umur) Saat dijalankan, program mengalami error ( TypeError ). Analisis penyebab utama terjadinya kesalahan pada program tersebut adalah...",
+    "options": {
+      "A": "Variabel umur tidak boleh diisi dengan angka $13$",
+      "B": "Penggunaan tanda petik pada teks salah",
+      "C": "Operator + tidak dapat digunakan secara langsung untuk menggabungkan tipe data String dengan Integer",
+      "D": "Perintah print harus diawali huruf besar Print"
+    },
+    "answer": "C",
+    "materi": "Debugging & Tipe Data"
+  },
+  {
+    "no": 37,
+    "question": "Perhatikan jalannya program Python berikut: total = 0 for n in range(1, 4): total = total + n print(total) Setelah program selesai dijalankan, nilai akhir dari variabel total adalah...",
+    "options": {
+      "A": "3",
+      "B": "4",
+      "C": "6",
+      "D": "10"
+    },
+    "answer": "C",
+    "materi": "Algoritma Perulangan & Akumulasi"
+  },
+  {
+    "no": 38,
+    "question": "Diberikan sebuah masalah: \"Buatlah program yang menentukan apakah angka di dalam variabel bil adalah bilangan genap atau ganjil.\" Syarat suatu angka dinamakan bilangan genap adalah angka yang jika dibagi 2 sisa baginya adalah 0. Manakah ekspresi kondisi if yang paling tepat untuk mengisi bagian bergaris bawah (...) di bawah ini? if ... : print(\"Bilangan Genap\") else: print(\"Bilangan Ganjil\")",
+    "options": {
+      "A": "bil / 2 == 0",
+      "B": "bil % 2 == 0",
+      "C": "bil * 2 == 0",
+      "D": "bil // 2 == 0"
+    },
+    "answer": "B",
+    "materi": "Logika Aritmatika & Percabangan"
+  },
+  {
+    "no": 39,
+    "question": "Amati baris kode berikut ini: x = 5 while x > 0: print(\"Semangat Belajar!\") Mengapa program di atas mengalami kondisi infinite loop (mencetak tanpa berhenti)?",
+    "options": {
+      "A": "Teks \"Semangat Belajar!\" tidak diapit kurung siku",
+      "B": "Syarat x > 0 bernilai False dari awal",
+      "C": "Nilai variabel x tidak pernah diubah atau dikurangi di dalam perulangan, sehingga syarat x > 0 selalu bernilai True",
+      "D": "Perintah while tidak boleh dipakai untuk angka lebih dari 0"
+    },
+    "answer": "C",
+    "materi": "Logika Perulangan (while)"
+  },
+  {
+    "no": 40,
+    "question": "Perhatikan alur penanganan data list di bawah ini: angka = [2, 4, 6] angka[1] = 10 print(angka) Hasil akhir keluaran ( output ) dari list angka setelah kode tersebut dijalankan adalah...",
+    "options": {
+      "A": "[2, 4, 6, 10]",
+      "B": "[10, 4, 6]",
+      "C": "[2, 10, 6]",
+      "D": "[2, 4, 10]"
+    },
+    "answer": "C",
+    "materi": "Pengisikan dan Manipulasi List"
+  }
+]

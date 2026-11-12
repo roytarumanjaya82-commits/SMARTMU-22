@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Materi{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Bank Materi Koding</h1>
+  <p>Unggah materi PDF, DOC/DOCX, atau PPT/PPTX per kelas (7/8/9) dan semester. Materi teks bawaan tetap bisa dibuka.</p>
+</section>
+
+<div class="card" style="margin-bottom:1.2rem">
+  <h2 style="margin-top:0">Upload materi (DOC / PDF / PPT)</h2>
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    <label>Judul materi
+      <input type="text" name="judul" required placeholder="Contoh: Pengenalan Variabel Python">
+    </label>
+    <label>Ringkasan (opsional)
+      <input type="text" name="ringkasan" placeholder="Ringkas isi materi">
+    </label>
+    <label>Jenjang kelas
+      <select name="tingkat" required>
+        <option value="7" {% if tingkat=='7' %}selected{% endif %}>Kelas 7</option>
+        <option value="8" {% if tingkat=='8' %}selected{% endif %}>Kelas 8</option>
+        <option value="9" {% if tingkat=='9' %}selected{% endif %}>Kelas 9</option>
+      </select>
+    </label>
+    <label>Semester
+      <select name="semester" required>
+        <option value="Ganjil" {% if semester=='Ganjil' %}selected{% endif %}>Ganjil</option>
+        <option value="Genap" {% if semester=='Genap' %}selected{% endif %}>Genap</option>
+      </select>
+    </label>
+    <label>Urutan pertemuan
+      <input type="number" name="urutan" min="1" value="1" required>
+    </label>
+    <label>Berkas (PDF / DOC / DOCX / PPT / PPTX, maks. 25 MB)
+      <input type="file" name="berkas" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" required>
+    </label>
+    <label style="grid-column:1/-1">Catatan singkat untuk siswa (opsional)
+      <textarea name="isi_html" rows="3" placeholder="Kosongkan jika cukup dari berkas unggahan"></textarea>
+    </label>
+    <button class="btn" type="submit">Unggah materi</button>
+  </form>
+</div>
+
+<div class="actions" style="margin-bottom:1rem">
+  <a class="btn {% if tingkat=='Semua' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.materi', semester=semester if semester!='Semua' else None) }}">Semua kelas</a>
+  <a class="btn {% if tingkat=='7' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.materi', tingkat='7', semester=semester if semester!='Semua' else None) }}">Kelas 7</a>
+  <a class="btn {% if tingkat=='8' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.materi', tingkat='8', semester=semester if semester!='Semua' else None) }}">Kelas 8</a>
+  <a class="btn {% if tingkat=='9' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.materi', tingkat='9', semester=semester if semester!='Semua' else None) }}">Kelas 9</a>
+  <a class="btn {% if semester=='Ganjil' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.materi', tingkat=tingkat if tingkat!='Semua' else None, semester='Ganjil') }}">Ganjil</a>
+  <a class="btn {% if semester=='Genap' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.materi', tingkat=tingkat if tingkat!='Semua' else None, semester='Genap') }}">Genap</a>
+</div>
+
+<div class="grid grid-2">
+  {% for m in data %}
+  <a class="card" href="{{ url_for('admin.materi_detail', materi_id=m.id) }}" style="color:inherit">
+    <span class="badge">Kelas {{ m.tingkat }} · {{ m.semester }} · P{{ m.urutan }}</span>
+    {% if m.file_tipe %}
+    <span class="badge badge-file">{{ ext_label(m.file_tipe) }}</span>
+    {% endif %}
+    <h3>{{ m.judul }}</h3>
+    <p class="muted">{{ m.ringkasan or 'Tanpa ringkasan' }}</p>
+    {% if m.file_nama %}
+    <p class="muted" style="margin-bottom:0"><small>Berkas: {{ m.file_nama }}</small></p>
+    {% endif %}
+  </a>
+  {% else %}
+  <div class="card muted">Belum ada materi.</div>
+  {% endfor %}
+</div>
+{% endblock %}

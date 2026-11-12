@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ judul }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ judul }}{% if tingkat %} · Kelas {{ tingkat }}{% endif %}{% if semester %} · {{ semester }}{% endif %}</h1>
+  <p>Setiap kegiatan hanya bisa dikerjakan sekali. Pengulangan hanya lewat reset oleh guru.</p>
+</section>
+
+{% if semester %}
+<div class="actions" style="margin-bottom:1rem">
+  <a class="btn {% if semester=='Ganjil' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for(request.endpoint, semester='Ganjil') }}">Ganjil</a>
+  <a class="btn {% if semester=='Genap' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for(request.endpoint, semester='Genap') }}">Genap</a>
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+  {% for u in data %}
+  <div class="card stack">
+    <div>
+      <span class="badge">{{ JENIS_UJIAN[u.jenis] }}</span>
+      {% if u.skor is not none %}
+      <span class="badge ok">Sudah dikerjakan</span>
+      {% elif u.berlangsung_id %}
+      <span class="badge warn">Sedang dikerjakan</span>
+      {% else %}
+      <span class="badge">Belum dikerjakan</span>
+      {% endif %}
+      <h3>{{ u.judul }}</h3>
+      <p class="muted">{{ u.deskripsi or 'Soal pilihan ganda interaktif.' }}</p>
+      <p class="muted">Durasi {{ u.durasi_menit }} menit · KKM {{ u.nilai_kkm }}
+        {% if u.skor is not none %} · Nilai: <strong>{{ u.skor }}</strong>{% endif %}
+      </p>
+    </div>
+    <div class="actions">
+      {% if u.berlangsung_id %}
+      <a class="btn" href="{{ url_for('siswa.kerjakan', percobaan_id=u.berlangsung_id) }}">Lanjutkan</a>
+      {% elif u.skor is not none %}
+        {% if u.hasil_id %}
+        <a class="btn btn-outline" href="{{ url_for('siswa.hasil', percobaan_id=u.hasil_id) }}">Lihat hasil</a>
+        {% else %}
+        <span class="muted">Sudah dikerjakan · hubungi guru untuk reset</span>
+        {% endif %}
+      {% else %}
+      <form method="post" action="{{ url_for('siswa.mulai_ujian', ujian_id=u.id) }}">
+        <button class="btn" type="submit">Mulai kerjakan</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card muted">Belum ada kegiatan untuk kategori ini.</div>
+  {% endfor %}
+</div>
+{% endblock %}

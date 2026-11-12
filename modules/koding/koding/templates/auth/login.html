@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Koding 7.5</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card stack">
+      <div class="login-brand">
+        <img class="brand-logo brand-logo-lg" src="{{ url_for('static', filename='img/logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+        <h1>Koding 7.5</h1>
+        <p class="muted">SMP Muhammadiyah 22 Setiabudi Pamulang · Pembelajaran Python interaktif</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="form-grid">
+        <label>Username
+          <input type="text" name="username" required autofocus placeholder="NIS / username guru">
+        </label>
+        <label>Password
+          <input type="password" name="password" required placeholder="Password">
+        </label>
+        <button class="btn" type="submit">Masuk</button>
+      </form>
+
+      <div class="card" style="box-shadow:none;padding:0.9rem">
+        <strong>Akun demo</strong>
+        <p class="muted" style="margin:0.35rem 0 0">Guru: <code>guru</code> / <code>guru123</code><br>
+        Siswa: username = NIS, password awal = <code>123456</code></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

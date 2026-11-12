@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Beranda Siswa{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Halo, {{ current_user.nama_lengkap }}!</h1>
+  <p>
+    Kelas {{ current_user.nama_kelas or tingkat }} · Materi Python
+    {% if tingkat == '8' %}lanjutan{% else %}dasar{% endif %}.
+    Belajar dari HP, tablet, atau laptop.
+  </p>
+</section>
+
+{% if ringkas %}
+<div class="grid grid-3" style="margin-bottom:1rem">
+  {% for r in ringkas %}
+  <div class="card">
+    <div class="muted">{{ jenis_map[r.jenis] }}</div>
+    <div class="stat-value">{{ r.rata }}</div>
+    <small class="muted">{{ r.jumlah }} penilaian</small>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Materi belajar · Kelas {{ tingkat }}</h2>
+    <div class="actions" style="margin-bottom:0.7rem">
+      <a class="btn btn-sm btn-accent" href="{{ url_for('siswa.materi_list', tingkat=tingkat, semester='Ganjil') }}">Ganjil</a>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('siswa.materi_list', tingkat=tingkat, semester='Genap') }}">Genap</a>
+    </div>
+    <div class="stack">
+      {% for m in materi if m.semester == 'Ganjil' %}
+        {% if loop.index <= 5 %}
+        <a href="{{ url_for('siswa.materi_detail', materi_id=m.id) }}">{{ m.urutan }}. {{ m.judul }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    <p style="margin-top:1rem"><a class="btn btn-outline" href="{{ url_for('siswa.materi_list', tingkat=tingkat, semester='Ganjil') }}">Semua materi</a></p>
+  </div>
+  <div class="card">
+    <h2>Aktivitas penilaian</h2>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('siswa.latihan', tingkat=tingkat, semester='Ganjil') }}">Latihan</a>
+      <a class="btn btn-accent" href="{{ url_for('siswa.ulangan_harian', tingkat=tingkat, semester='Ganjil') }}">Ulangan Harian</a>
+      <a class="btn btn-outline" href="{{ url_for('siswa.asesmen', tingkat=tingkat, semester='Ganjil') }}">Sumatif / STS / SAS</a>
+    </div>
+    <div class="table-wrap" style="margin-top:1rem">
+      <table>
+        <thead><tr><th>Kegiatan</th><th>Jenis</th><th>Nilai</th></tr></thead>
+        <tbody>
+          {% for u in ujian[:8] %}
+          <tr>
+            <td>{{ u.judul }}</td>
+            <td><span class="badge">{{ jenis_map[u.jenis] }}</span></td>
+            <td>{% if u.skor_terakhir is not none %}<strong>{{ u.skor_terakhir }}</strong>{% else %}<span class="muted">Belum</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

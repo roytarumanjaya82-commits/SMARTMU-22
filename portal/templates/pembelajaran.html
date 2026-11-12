@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pembelajaran · SMARTMU 22</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+</head>
+<body>
+  <div class="bungkus">
+    <header class="puncak">
+      <div class="identitas">
+        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+        <div>
+          <h1>Pembelajaran</h1>
+          <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+        </div>
+      </div>
+      <div class="aksi">
+        <a class="keluar" href="{{ url_for('beranda') }}">Beranda</a>
+        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for jenis, pesan in messages %}
+      <div class="flash {{ jenis }}">{{ pesan }}</div>
+      {% endfor %}
+    {% endwith %}
+    <p class="sapa">Pilih menu pembelajaran yang akan dibuka.</p>
+    <section class="kisi">
+      <a class="kartu" href="/presensi/hasil-belajar">
+        <span style="background: #0f6e56"></span>
+        <h2>Hasil Belajar</h2>
+        <p>Isi dan lihat hasil pembelajaran harian per kelas dan mata pelajaran.</p>
+      </a>
+      <a class="kartu" href="/koding/">
+        <span style="background: #1d4ed8"></span>
+        <h2>Kelas Koding</h2>
+        <p>Materi, latihan, ulangan, dan penilaian koding kelas 7 dan 8.</p>
+      </a>
+    </section>
+  </div>
+</body>
+</html>

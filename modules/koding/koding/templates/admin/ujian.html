@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Ujian & Soal{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Bank Soal & Asesmen</h1>
+  <p>Aktifkan ujian yang ingin diberikan ke siswa. Ujian nonaktif tidak muncul di akun siswa.</p>
+</section>
+
+<div class="actions" style="margin-bottom:1rem">
+  <a class="btn {% if tingkat=='Semua' and not jenis %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.ujian') }}">Semua</a>
+  <a class="btn {% if tingkat=='7' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.ujian', tingkat='7', jenis=jenis) }}">Kelas 7</a>
+  <a class="btn {% if tingkat=='8' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.ujian', tingkat='8', jenis=jenis) }}">Kelas 8</a>
+  <a class="btn {% if tingkat=='9' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.ujian', tingkat='9', jenis=jenis) }}">Kelas 9</a>
+  {% for key, label in jenis_map.items() %}
+  <a class="btn {% if jenis==key %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.ujian', jenis=key, tingkat=tingkat if tingkat!='Semua' else None) }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Judul</th><th>Kelas</th><th>Jenis</th><th>Soal</th><th>Durasi</th><th>KKM</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for u in data %}
+        <tr class="{% if not u.aktif %}row-inactive{% endif %}">
+          <td><strong>{{ u.judul }}</strong>{% if u.materi_judul %}<br><small class="muted">{{ u.materi_judul }}</small>{% endif %}</td>
+          <td>{{ u.tingkat }}</td>
+          <td><span class="badge">{{ jenis_map[u.jenis] }}</span></td>
+          <td>{{ u.total_soal }}</td>
+          <td>{{ u.durasi_menit }} mnt</td>
+          <td>{{ u.nilai_kkm }}</td>
+          <td>
+            {% if u.aktif %}
+            <span class="badge ok">Aktif</span>
+            {% else %}
+            <span class="badge danger">Nonaktif</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="actions" style="flex-wrap:nowrap;gap:0.4rem">
+              <form method="post" action="{{ url_for('admin.ujian_toggle_aktif', ujian_id=u.id) }}">
+                <input type="hidden" name="jenis" value="{{ jenis or '' }}">
+                <input type="hidden" name="tingkat" value="{{ tingkat if tingkat!='Semua' else '' }}">
+                {% if u.aktif %}
+                <button class="btn btn-sm btn-outline" type="submit" title="Nonaktifkan">Nonaktifkan</button>
+                {% else %}
+                <button class="btn btn-sm btn-accent" type="submit" title="Aktifkan">Aktifkan</button>
+                {% endif %}
+              </form>
+              <a class="btn btn-sm btn-outline" href="{{ url_for('admin.ujian_detail', ujian_id=u.id) }}">Detail</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="muted">Belum ada ujian.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

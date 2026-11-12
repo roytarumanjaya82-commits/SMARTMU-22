@@ -3,4 +3,6 @@ __pycache__/
 *.pyc
 koding/static/uploads/
 data/*.xlsx
+data/modul/*.pdf
 !data/.gitkeep
+!data/modul/.gitkeep

@@ -436,3 +436,49 @@ def nilai_saya():
     return render_template(
         "siswa/nilai.html", data=data, jenis_map=JENIS_UJIAN, tingkat=tingkat
     )
+
+
+def _folder_modul():
+    from koding.config import Config
+
+    folder = Config.BLANKO_FOLDER / "modul"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+@bp.route("/modul")
+@siswa_required
+def modul_list():
+    from koding.modul_katalog import daftar_modul
+
+    tingkat = _tingkat()
+    modul = daftar_modul(tingkat)
+    return render_template(
+        "siswa/modul_list.html",
+        modul=modul,
+        tingkat=tingkat,
+    )
+
+
+@bp.route("/modul/<kode>/unduh")
+@siswa_required
+def modul_unduh(kode):
+    from koding.modul_katalog import cari_modul
+    from koding.modul_pdf import pastikan_pdf
+
+    item = cari_modul(kode)
+    if not item:
+        abort(404)
+    if str(item.get("tingkat")) != _tingkat():
+        flash("Modul ini untuk kelas lain.", "warning")
+        return redirect(url_for("siswa.modul_list"))
+    path = pastikan_pdf(kode, _folder_modul())
+    if not path or not path.is_file():
+        flash("Gagal menyiapkan PDF modul.", "danger")
+        return redirect(url_for("siswa.modul_list"))
+    return send_file(
+        path,
+        as_attachment=True,
+        download_name=f"{item['kode']}_{item['judul'][:40].replace(' ', '_')}.pdf",
+        mimetype="application/pdf",
+    )

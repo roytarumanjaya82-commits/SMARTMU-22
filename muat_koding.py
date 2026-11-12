@@ -11,10 +11,11 @@ FOLDER = ROOT / "modules" / "koding"
 def muat():
     sys.path.insert(0, str(FOLDER))
     try:
-        if "koding" in sys.modules:
-            paket = importlib.reload(sys.modules["koding"])
-        else:
-            paket = importlib.import_module("koding")
+        # Buang cache paket koding agar route/template baru (mis. Modul) pasti termuat.
+        for nama in list(sys.modules):
+            if nama == "koding" or nama.startswith("koding."):
+                del sys.modules[nama]
+        paket = importlib.import_module("koding")
         aplikasi = paket.create_app()
     finally:
         while str(FOLDER) in sys.path:

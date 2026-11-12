@@ -14,7 +14,7 @@
         <a class="brand" href="{{ url_for('public.index') }}">
           <img class="brand-logo" src="{{ url_for('static', filename='img/logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
           <div>
-            <strong>Koding 7 & 8</strong>
+            <strong>Koding 7–9</strong>
             <small>SMP Muhammadiyah 22</small>
           </div>
         </a>
@@ -25,11 +25,13 @@
             <a href="{{ url_for('admin.kelas') }}">Kelas</a>
             <a href="{{ url_for('admin.siswa') }}">Siswa</a>
             <a href="{{ url_for('admin.materi') }}">Materi</a>
+            <a href="{{ url_for('admin.modul') }}">Modul PDF</a>
             <a href="{{ url_for('admin.ujian') }}">Soal/Ujian</a>
             <a href="{{ url_for('penilaian.index') }}">Penilaian</a>
             <a href="{{ url_for('penilaian.reset') }}">Reset Soal</a>
           {% else %}
             <a href="{{ url_for('siswa.dashboard') }}">Beranda</a>
+            <a href="{{ url_for('siswa.modul_list') }}">Modul</a>
             <a href="{{ url_for('siswa.materi_list') }}">Materi</a>
             <a href="{{ url_for('siswa.latihan') }}">Latihan</a>
             <a href="{{ url_for('siswa.ulangan_harian') }}">Ulangan</a>

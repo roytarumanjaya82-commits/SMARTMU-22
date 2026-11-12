@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Modul Pembelajaran PDF{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Modul Pembelajaran (PDF)</h1>
+  <p>Modul per kelas 7–9 untuk diunduh siswa. Berisi penjelasan, contoh Mudah–Sedang–Sulit, dan ilustrasi 2D/3D.</p>
+</section>
+
+<div class="modul-filter">
+  <a class="btn {% if tingkat=='Semua' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.modul') }}">Semua</a>
+  <a class="btn {% if tingkat=='7' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.modul', tingkat='7') }}">Kelas 7</a>
+  <a class="btn {% if tingkat=='8' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.modul', tingkat='8') }}">Kelas 8</a>
+  <a class="btn {% if tingkat=='9' %}btn-accent{% else %}btn-outline{% endif %}" href="{{ url_for('admin.modul', tingkat='9') }}">Kelas 9</a>
+  <form method="post" action="{{ url_for('admin.modul_generate') }}" style="display:inline">
+    <input type="hidden" name="tingkat" value="{{ '' if tingkat=='Semua' else tingkat }}">
+    <button class="btn btn-outline" type="submit">Generate ulang PDF</button>
+  </form>
+</div>
+
+<div class="grid grid-2">
+  {% for m in data %}
+  <article class="card">
+    <span class="badge">Kelas {{ m.tingkat }}</span>
+    <h3>{{ m.judul }}</h3>
+    <p class="muted">{{ m.ringkas }}</p>
+    <a class="btn" href="{{ url_for('admin.modul_unduh', kode=m.kode) }}">Unduh PDF</a>
+  </article>
+  {% else %}
+  <div class="card muted">Belum ada modul.</div>
+  {% endfor %}
+</div>
+{% endblock %}

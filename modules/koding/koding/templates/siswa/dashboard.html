@@ -4,11 +4,19 @@
 <section class="hero">
   <h1>Halo, {{ current_user.nama_lengkap }}!</h1>
   <p>
-    Kelas {{ current_user.nama_kelas or tingkat }} · Materi Python
-    {% if tingkat == '8' %}lanjutan{% else %}dasar{% endif %}.
+    Kelas {{ current_user.nama_kelas or tingkat }} ·
+    {% if tingkat == '9' %}Project &amp; game OOP
+    {% elif tingkat == '8' %}Python lanjutan &amp; OOP
+    {% else %}Dasar Python{% endif %}.
     Belajar dari HP, tablet, atau laptop.
   </p>
 </section>
+
+<div class="card" style="margin-bottom:1rem">
+  <h2 style="margin-top:0">Modul Pembelajaran Kelas {{ tingkat }}</h2>
+  <p class="muted">PDF lengkap: penjelasan + contoh Mudah→Sedang→Sulit + ilustrasi. Bisa diunduh.</p>
+  <a class="btn" href="{{ url_for('siswa.modul_list') }}">Buka &amp; unduh modul</a>
+</div>
 
 {% if ringkas %}
 <div class="grid grid-3" style="margin-bottom:1rem">

@@ -566,3 +566,57 @@ def ujian_toggle_aktif(ujian_id):
         )
     )
 
+
+def _folder_modul_admin():
+    folder = Config.BLANKO_FOLDER / "modul"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
+
+@bp.route("/modul")
+@guru_required
+def modul():
+    from koding.modul_katalog import semua_modul
+
+    tingkat = request.args.get("tingkat", "Semua")
+    data = semua_modul()
+    if tingkat in TINGKAT_VALID:
+        data = [m for m in data if m["tingkat"] == tingkat]
+    else:
+        tingkat = "Semua"
+    return render_template("admin/modul.html", data=data, tingkat=tingkat)
+
+
+@bp.route("/modul/<kode>/unduh")
+@guru_required
+def modul_unduh(kode):
+    from koding.modul_katalog import cari_modul
+    from koding.modul_pdf import pastikan_pdf
+
+    item = cari_modul(kode)
+    if not item:
+        abort(404)
+    path = pastikan_pdf(kode, _folder_modul_admin())
+    if not path or not path.is_file():
+        flash("Gagal menyiapkan PDF modul.", "danger")
+        return redirect(url_for("admin.modul"))
+    return send_file(
+        path,
+        as_attachment=True,
+        download_name=f"{item['kode']}.pdf",
+        mimetype="application/pdf",
+    )
+
+
+@bp.route("/modul/generate", methods=["POST"])
+@guru_required
+def modul_generate():
+    from koding.modul_pdf import generate_semua
+
+    tingkat = request.form.get("tingkat") or None
+    if tingkat not in TINGKAT_VALID:
+        tingkat = None
+    hasil = generate_semua(_folder_modul_admin(), tingkat)
+    flash(f"{len(hasil)} modul PDF berhasil dibuat/diperbarui.", "success")
+    return redirect(url_for("admin.modul", tingkat=tingkat or "Semua"))
+

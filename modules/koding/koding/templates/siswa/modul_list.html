@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Modul Pembelajaran Kelas {{ tingkat }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Modul Pembelajaran · Kelas {{ tingkat }}</h1>
+  <p>
+    Modul PDF lengkap dengan penjelasan mudah, contoh program
+    <strong>Mudah → Sedang → Sulit</strong>, serta ilustrasi 2D/3D.
+    Unduh, baca offline, lalu praktikkan kodenya.
+  </p>
+</section>
+
+<div class="grid grid-2">
+  {% for m in modul %}
+  <article class="card modul-card">
+    <span class="badge">Kelas {{ tingkat }} · PDF</span>
+    <h3>{{ m.judul }}</h3>
+    <p class="muted">{{ m.ringkas }}</p>
+    <ul class="modul-poin">
+      <li>Bahasa ramah murid SMP</li>
+      <li>3 contoh coding bertingkat</li>
+      <li>Ilustrasi alur &amp; objek 2D/3D</li>
+    </ul>
+    <div class="actions">
+      <a class="btn" href="{{ url_for('siswa.modul_unduh', kode=m.kode) }}">Unduh PDF</a>
+    </div>
+  </article>
+  {% else %}
+  <div class="card muted">Belum ada modul untuk kelas ini.</div>
+  {% endfor %}
+</div>
+
+<section class="card" style="margin-top:1.2rem">
+  <h2 style="margin-top:0">Cara memakai modul</h2>
+  <ol>
+    <li>Unduh PDF modul sesuai kelasmu.</li>
+    <li>Baca penjelasan singkatnya dulu.</li>
+    <li>Ketik ulang contoh <em>Mudah</em>, lalu lanjut ke <em>Sedang</em> dan <em>Sulit</em>.</li>
+    <li>Kerjakan bagian refleksi di halaman terakhir modul.</li>
+  </ol>
+</section>
+{% endblock %}

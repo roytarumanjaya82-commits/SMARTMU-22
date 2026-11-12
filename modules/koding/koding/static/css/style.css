@@ -73,6 +73,16 @@ a:hover { color: var(--brand-dark); }
   background: #f8fffd;
 }
 .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.88rem; border-radius: 10px; }
+
+.modul-card h3 { margin: 0.45rem 0 0.35rem; font-size: 1.05rem; }
+.modul-poin {
+  margin: 0.6rem 0 1rem;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.modul-poin li { margin: 0.2rem 0; }
+.modul-filter { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .form-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.85rem; align-items: end;

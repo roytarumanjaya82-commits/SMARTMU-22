@@ -5,41 +5,102 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pembelajaran · SMARTMU 22</title>
   <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}?v=18">
 </head>
-<body>
-  <div class="bungkus">
-    <header class="puncak">
-      <div class="identitas">
-        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+<body class="beranda pembelajaran">
+  <div class="portal-shell" id="smartmu-switch">
+    <aside class="portal-sidebar" aria-label="Menu pembelajaran">
+      <div class="sidebar-atas">
+        <a class="sidebar-brand" href="{{ url_for('pembelajaran') }}">
+          <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+          <div>
+            <strong>Pembelajaran</strong>
+            <small>SMARTMU 22</small>
+          </div>
+        </a>
+        <button type="button" class="sidebar-garis" id="sidebar-garis" aria-label="Buka menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <nav class="sidebar-menu" id="sidebar-menu">
+        <p class="sidebar-judul">Pembelajaran</p>
+        <a class="sidebar-item" href="/presensi/hasil-belajar">
+          <span class="sidebar-dot" style="background: #0f6e56"></span>
+          <span class="sidebar-teks">
+            <strong>Hasil Belajar</strong>
+            <small>Isi dan lihat hasil pembelajaran harian per kelas dan mata pelajaran.</small>
+          </span>
+        </a>
+        <a class="sidebar-item" href="/koding/">
+          <span class="sidebar-dot" style="background: #1d4ed8"></span>
+          <span class="sidebar-teks">
+            <strong>Kelas Koding</strong>
+            <small>Materi, modul PDF, latihan, ulangan, dan penilaian koding kelas 7–9.</small>
+          </span>
+        </a>
+
+        <p class="sidebar-judul" style="margin-top:1rem;">Portal</p>
+        <a class="sidebar-item" href="{{ url_for('beranda') }}">
+          <span class="sidebar-dot" style="background: #0c4f3b"></span>
+          <span class="sidebar-teks">
+            <strong>Beranda</strong>
+            <small>Kembali ke beranda portal.</small>
+          </span>
+        </a>
+        {% if modul_list %}
+          {% for modul in modul_list %}
+          <a class="sidebar-item{% if modul.kunci == 'pembelajaran' %} aktif{% endif %}" href="{{ modul.href }}">
+            <span class="sidebar-dot" style="background: {{ modul.warna }}"></span>
+            <span class="sidebar-teks">
+              <strong>{{ modul.nama }}</strong>
+              <small>{{ modul.ringkas }}</small>
+            </span>
+          </a>
+          {% endfor %}
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-kaki">
+        <a href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
+    </aside>
+
+    <main class="portal-utama">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for jenis, pesan in messages %}
+        <div class="flash {{ jenis }}">{{ pesan }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <header class="utama-kepala">
         <div>
+          <p class="eyebrow">Portal Pembelajaran</p>
           <h1>Pembelajaran</h1>
-          <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
+          <p class="sapa">Pilih menu di sidebar untuk membuka layanan pembelajaran.</p>
         </div>
+      </header>
+
+      <div class="lembar ringkas-portal">
+        <h2>Menu pembelajaran</h2>
+        <p>Layanan siap dibuka dari sidebar.</p>
+        <ul class="daftar-pintas">
+          <li><a href="/presensi/hasil-belajar">Hasil Belajar</a></li>
+          <li><a href="/koding/">Kelas Koding</a></li>
+        </ul>
       </div>
-      <div class="aksi">
-        <a class="keluar" href="{{ url_for('beranda') }}">Beranda</a>
-        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
-      </div>
-    </header>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for jenis, pesan in messages %}
-      <div class="flash {{ jenis }}">{{ pesan }}</div>
-      {% endfor %}
-    {% endwith %}
-    <p class="sapa">Pilih menu pembelajaran yang akan dibuka.</p>
-    <section class="kisi">
-      <a class="kartu" href="/presensi/hasil-belajar">
-        <span style="background: #0f6e56"></span>
-        <h2>Hasil Belajar</h2>
-        <p>Isi dan lihat hasil pembelajaran harian per kelas dan mata pelajaran.</p>
-      </a>
-      <a class="kartu" href="/koding/">
-        <span style="background: #1d4ed8"></span>
-        <h2>Kelas Koding</h2>
-        <p>Materi, modul PDF, latihan, ulangan, dan penilaian koding kelas 7–9.</p>
-      </a>
-    </section>
+    </main>
   </div>
+  <script>
+  (function () {
+    var tombol = document.getElementById("sidebar-garis");
+    var shell = document.querySelector(".portal-shell");
+    if (!tombol || !shell) return;
+    tombol.addEventListener("click", function () {
+      var buka = shell.classList.toggle("menu-buka");
+      tombol.setAttribute("aria-expanded", buka ? "true" : "false");
+    });
+  })();
+  </script>
 </body>
 </html>

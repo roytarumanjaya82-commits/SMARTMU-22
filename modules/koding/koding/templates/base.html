@@ -4,43 +4,65 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Koding SMP{% endblock %} | SMPM 22</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
 </head>
-<body>
-  <div class="shell">
+<body class="{% if current_user %}has-sidebar{% else %}public-page{% endif %}">
+  {% if current_user %}
+  <aside class="sidebar" id="sidebar" aria-label="Menu koding">
+    <a class="sidebar-brand" href="{{ url_for('public.index') }}">
+      <img class="brand-logo" src="{{ url_for('static', filename='img/logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+      <div>
+        <strong>Koding 7–9</strong>
+        <small>SMP Muhammadiyah 22</small>
+      </div>
+    </a>
+
+    <div class="sidebar-user">
+      <div class="sidebar-user-name">{{ current_user.nama_lengkap }}</div>
+      <div class="sidebar-user-role">{% if current_user.role == 'guru' %}Guru Koding{% else %}Siswa{% endif %}</div>
+    </div>
+
+    <nav class="sidebar-nav" data-nav>
+      {% if current_user.role == 'guru' %}
+        <div class="nav-section">Menu Guru</div>
+        <a class="nav-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a class="nav-item {% if request.endpoint == 'admin.kelas' %}active{% endif %}" href="{{ url_for('admin.kelas') }}">Kelas</a>
+        <a class="nav-item {% if request.endpoint == 'admin.siswa' %}active{% endif %}" href="{{ url_for('admin.siswa') }}">Siswa</a>
+        <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.materi') %}active{% endif %}" href="{{ url_for('admin.materi') }}">Materi</a>
+        <a class="nav-item {% if request.endpoint == 'admin.modul' %}active{% endif %}" href="{{ url_for('admin.modul') }}">Modul PDF</a>
+        <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.ujian') %}active{% endif %}" href="{{ url_for('admin.ujian') }}">Soal/Ujian</a>
+        <a class="nav-item {% if request.endpoint and request.endpoint.startswith('penilaian.') and request.endpoint != 'penilaian.reset' %}active{% endif %}" href="{{ url_for('penilaian.index') }}">Penilaian</a>
+        <a class="nav-item {% if request.endpoint == 'penilaian.reset' %}active{% endif %}" href="{{ url_for('penilaian.reset') }}">Reset Soal</a>
+      {% else %}
+        <div class="nav-section">Menu Siswa</div>
+        <a class="nav-item {% if request.endpoint == 'siswa.dashboard' %}active{% endif %}" href="{{ url_for('siswa.dashboard') }}">Beranda</a>
+        <a class="nav-item {% if request.endpoint and request.endpoint.startswith('siswa.modul') %}active{% endif %}" href="{{ url_for('siswa.modul_list') }}">Modul</a>
+        <a class="nav-item {% if request.endpoint and request.endpoint.startswith('siswa.materi') %}active{% endif %}" href="{{ url_for('siswa.materi_list') }}">Materi</a>
+        <a class="nav-item {% if request.endpoint == 'siswa.latihan' %}active{% endif %}" href="{{ url_for('siswa.latihan') }}">Latihan</a>
+        <a class="nav-item {% if request.endpoint == 'siswa.ulangan_harian' %}active{% endif %}" href="{{ url_for('siswa.ulangan_harian') }}">Ulangan</a>
+        <a class="nav-item {% if request.endpoint == 'siswa.asesmen' %}active{% endif %}" href="{{ url_for('siswa.asesmen') }}">Sumatif</a>
+        <a class="nav-item {% if request.endpoint == 'siswa.nilai_saya' %}active{% endif %}" href="{{ url_for('siswa.nilai_saya') }}">Nilai Saya</a>
+      {% endif %}
+      <div class="nav-section">Portal</div>
+      <a class="nav-item" href="/pembelajaran/">Pembelajaran</a>
+      <a class="nav-item" href="/">Administrator SMARTMU</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a class="nav-item logout" href="{{ url_for('auth.logout') }}">Keluar</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay" id="sidebarOverlay" data-sidebar-close></div>
+  {% endif %}
+
+  <div class="shell{% if current_user %} with-sidebar{% endif %}">
     {% if current_user %}
-    <header class="topbar">
+    <header class="topbar compact-topbar">
       <div class="topbar-inner">
-        <a class="brand" href="{{ url_for('public.index') }}">
-          <img class="brand-logo" src="{{ url_for('static', filename='img/logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
-          <div>
-            <strong>Koding 7–9</strong>
-            <small>SMP Muhammadiyah 22</small>
-          </div>
-        </a>
-        <button class="menu-toggle" type="button" data-menu-toggle>Menu</button>
-        <nav class="nav" data-nav>
-          {% if current_user.role == 'guru' %}
-            <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('admin.kelas') }}">Kelas</a>
-            <a href="{{ url_for('admin.siswa') }}">Siswa</a>
-            <a href="{{ url_for('admin.materi') }}">Materi</a>
-            <a href="{{ url_for('admin.modul') }}">Modul PDF</a>
-            <a href="{{ url_for('admin.ujian') }}">Soal/Ujian</a>
-            <a href="{{ url_for('penilaian.index') }}">Penilaian</a>
-            <a href="{{ url_for('penilaian.reset') }}">Reset Soal</a>
-          {% else %}
-            <a href="{{ url_for('siswa.dashboard') }}">Beranda</a>
-            <a href="{{ url_for('siswa.modul_list') }}">Modul</a>
-            <a href="{{ url_for('siswa.materi_list') }}">Materi</a>
-            <a href="{{ url_for('siswa.latihan') }}">Latihan</a>
-            <a href="{{ url_for('siswa.ulangan_harian') }}">Ulangan</a>
-            <a href="{{ url_for('siswa.asesmen') }}">Sumatif</a>
-            <a href="{{ url_for('siswa.nilai_saya') }}">Nilai Saya</a>
-          {% endif %}
-          <span class="chip">{{ current_user.nama_lengkap }}</span>
-          <a href="{{ url_for('auth.logout') }}">Keluar</a>
-        </nav>
+        <button class="sidebar-toggle" type="button" data-menu-toggle aria-label="Buka menu">☰</button>
+        <div class="topbar-judul">
+          <strong>{% block page_heading %}Kelas Koding{% endblock %}</strong>
+        </div>
       </div>
     </header>
     {% endif %}
@@ -62,7 +84,7 @@
       Program Pembelajaran Koding · Kurikulum Merdeka · TP 2026/2027 · Bisa diakses dari HP, tablet, dan laptop
     </footer>
   </div>
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}?v=2"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

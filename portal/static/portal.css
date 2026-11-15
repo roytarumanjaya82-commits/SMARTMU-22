@@ -191,8 +191,9 @@ button {
   .daftar-db li { align-items: flex-start; flex-direction: column; }
 }
 
-/* Beranda: menu portal sebagai sidebar */
-body.beranda {
+/* Beranda & Pembelajaran: menu sebagai sidebar */
+body.beranda,
+body.pembelajaran {
   background: #e8efe9;
 }
 .portal-shell {
@@ -290,7 +291,8 @@ body.beranda {
   background: rgba(255, 255, 255, 0.04);
 }
 .sidebar-item:hover,
-.sidebar-item:focus-visible {
+.sidebar-item:focus-visible,
+.sidebar-item.aktif {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.16);
   outline: none;

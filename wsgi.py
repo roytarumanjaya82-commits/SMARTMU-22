@@ -73,6 +73,12 @@ def _muat_koding():
     return muat()
 
 
+def _muat_tpk():
+    from muat_tpk import muat
+
+    return muat()
+
+
 def _wajib_garis_miring(aplikasi):
     def wsgi(environ, start_response):
         if environ.get("PATH_INFO", "") == "":
@@ -140,6 +146,7 @@ _MENU = (
     ("/tahfidz/", "Tahfidz"),
     ("/bk/", "Rapor BK"),
     ("/inventaris/", "Inventaris"),
+    ("/tpk/", "TPK"),
 )
 
 
@@ -150,6 +157,7 @@ _PINTU = (
     ("/bk", "bk", ()),
     ("/inventaris", "inventaris", ("/login", "/static/")),
     ("/koding", "koding", ("/login", "/static/")),
+    ("/tpk", "tpk", ("/", "/auth/login", "/static/")),
 )
 
 
@@ -316,7 +324,7 @@ def _bebas_rawat(path):
 
 
 def _portal_rawat(path):
-    for awalan in ("/presensi", "/erapor", "/tahfidz", "/bk", "/inventaris", "/koding"):
+    for awalan in ("/presensi", "/erapor", "/tahfidz", "/bk", "/inventaris", "/koding", "/tpk"):
         if path == awalan or path.startswith(awalan + "/"):
             return True
     return False
@@ -454,6 +462,7 @@ def bangun():
                 "/bk": _wajib_garis_miring(_muat_bk()),
                 "/inventaris": _wajib_garis_miring(_muat_inventaris()),
                 "/koding": _wajib_garis_miring(_muat_koding()),
+                "/tpk": _wajib_garis_miring(_muat_tpk()),
             },
         )
     )

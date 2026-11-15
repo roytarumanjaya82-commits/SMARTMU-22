@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Tes Susulan{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Tes Susulan</h1>
+    <p class="page-sub">
+      Murid yang berhalangan hadir pada jadwal tes reguler ditandai di sini,
+      lalu mengerjakan dengan password khusus tes susulan.
+    </p>
+
+    <form class="panel" method="get" style="margin-bottom:1rem;">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <h3>Buka / Tutup Tes Susulan · {{ label_gelombang(gelombang) }}</h3>
+      <form method="post">
+        <input type="hidden" name="aksi" value="buka_kunci">
+        <input type="hidden" name="gelombang" value="{{ gelombang }}">
+        <div class="form-grid">
+          <div>
+            <label>Password Masuk Susulan</label>
+            <input name="password_masuk" value="{{ kunci.password_masuk }}" required>
+          </div>
+          <div>
+            <label>Password Keluar Susulan</label>
+            <input name="password_keluar" value="{{ kunci.password_keluar }}" required>
+          </div>
+          <div class="full">
+            <label style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="checkbox" name="is_aktif" value="1" {% if kunci.is_aktif %}checked{% endif %}>
+              Buka pengerjaan tes susulan sekarang
+            </label>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Simpan Pengaturan Susulan</button>
+          <a class="btn btn-secondary" href="{{ url_for('admin.tes_monitoring', gelombang=gelombang, jalur='susulan') }}">Monitoring Susulan</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid-2" style="margin-top:1rem;">
+      <div class="panel">
+        <h3>Tandai Murid Berhalangan</h3>
+        <form method="post">
+          <input type="hidden" name="aksi" value="tandai">
+          <input type="hidden" name="gelombang" value="{{ gelombang }}">
+          <div class="form-grid">
+            <div class="full">
+              <label>Murid</label>
+              <select name="murid_id" required>
+                <option value="">— pilih —</option>
+                {% for m in kandidat %}
+                  <option value="{{ m.id }}">{{ m.user.nama_lengkap }} · {{ m.nisn }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="full">
+              <label>Alasan berhalangan</label>
+              <input name="alasan_susulan" placeholder="Contoh: sakit / keperluan keluarga">
+            </div>
+            <div>
+              <label>Tanggal rencana susulan</label>
+              <input type="date" name="tanggal_susulan">
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit">Tandai Tes Susulan</button>
+          </div>
+        </form>
+        {% if not kandidat %}
+        <p class="help">Tidak ada kandidat (semua sudah selesai atau sudah ditandai).</p>
+        {% endif %}
+      </div>
+
+      <div class="panel">
+        <h3>Daftar Tes Susulan ({{ items|length }})</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Nama</th><th>Alasan</th><th>Jadwal</th><th>Progress</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for m in items %}
+              <tr>
+                <td>
+                  <strong>{{ m.user.nama_lengkap }}</strong><br>
+                  <small>{{ m.nisn }} · {{ m.status_label }}</small>
+                </td>
+                <td>{{ m.alasan_susulan or '—' }}</td>
+                <td>{{ m.tanggal_susulan.strftime('%d/%m/%Y') if m.tanggal_susulan else '—' }}</td>
+                <td>{{ m.progress_tes_label }}</td>
+                <td>
+                  <form method="post" onsubmit="return confirm('Batalkan status susulan?');">
+                    <input type="hidden" name="aksi" value="batal">
+                    <input type="hidden" name="murid_id" value="{{ m.id }}">
+                    <input type="hidden" name="gelombang" value="{{ gelombang }}">
+                    <button class="btn btn-sm btn-secondary" type="submit">Batal</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5">Belum ada murid tes susulan.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

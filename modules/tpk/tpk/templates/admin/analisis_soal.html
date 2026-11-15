@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Analisis Soal{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div class="print-header">
+      <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
+      <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+      <h3>Analisis Setiap Soal Tes Tertulis</h3>
+      <p>Tahun Ajaran {{ tahun_ajaran }} · {{ label_gelombang(gelombang) }}{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</p>
+    </div>
+
+    <div class="actions no-print" style="margin-bottom:1rem;">
+      <button class="btn btn-primary" type="button" onclick="window.print()">Cetak Analisis</button>
+      <a class="btn btn-secondary" href="{{ url_for('admin.tes_cetak_hasil', gelombang=gelombang) }}">Cetak Hasil Peserta</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.tes_monitoring', gelombang=gelombang) }}">Monitoring</a>
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Kelas Soal</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kelas</th>
+            <th>Soal / Materi</th>
+            <th>Kunci</th>
+            <th>Dijawab</th>
+            <th>Benar</th>
+            <th>Salah</th>
+            <th>% Benar</th>
+            <th>A</th><th>B</th><th>C</th><th>D</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.no }}</td>
+            <td>{{ r.soal.kelas_label }}</td>
+            <td>
+              <strong>{{ r.soal.materi or '—' }}</strong><br>
+              <small class="arabic-field" dir="auto">{{ r.soal.ringkas_pertanyaan }}</small>
+            </td>
+            <td>{{ r.soal.jawaban_benar }}</td>
+            <td>{{ r.total }}</td>
+            <td>{{ r.benar }}</td>
+            <td>{{ r.salah }}</td>
+            <td>{% if r.persen_benar is not none %}<strong>{{ r.persen_benar }}%</strong>{% else %}—{% endif %}</td>
+            <td>{{ r.sebaran.A }}</td>
+            <td>{{ r.sebaran.B }}</td>
+            <td>{{ r.sebaran.C }}</td>
+            <td>{{ r.sebaran.D }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="12">Belum ada soal / jawaban.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="print-footnote">Analisis dihitung dari jawaban murid pada gelombang terpilih.</p>
+  </div>
+</section>
+{% endblock %}

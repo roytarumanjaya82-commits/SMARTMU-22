@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan Pengguna{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Pengaturan Pengguna</h1>
+        <p class="page-sub">
+          Kelola akun Admin, Guru, Murid, dan Orang Tua: ganti username, reset password.
+          Akun orang tua dibuat otomatis dari Data Murid.
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('admin.pengguna_cetak_akun') }}">Cetak Username &amp; Password</a>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat panel">
+        <div class="label">Admin</div>
+        <div class="value">{{ ringkas.admin }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Guru Penguji</div>
+        <div class="value">{{ ringkas.guru }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Pembuat Soal</div>
+        <div class="value">{{ ringkas.guru_soal }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Murid</div>
+        <div class="value">{{ ringkas.murid }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Orang Tua</div>
+        <div class="value">{{ ringkas.orang_tua }}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Tambah Pengguna</h3>
+      <form method="post" action="{{ url_for('admin.pengguna_tambah') }}" id="formTambahPengguna">
+        <div class="form-grid">
+          <div>
+            <label>Peran</label>
+            <select name="role" id="roleTambah" required>
+              {% for value, label in role_choices if value != 'orang_tua' %}
+                <option value="{{ value }}" {% if role==value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label>Username</label>
+            <input name="username" placeholder="Kosongkan = otomatis dari nama">
+          </div>
+          <div class="full">
+            <label>Nama Lengkap</label>
+            <input name="nama_lengkap" required>
+          </div>
+          <div>
+            <label>Password awal</label>
+            <input name="password" placeholder="Default sesuai peran">
+            <div class="help">
+              Default: admin=<code>{{ default_passwords.admin }}</code>,
+              guru=<code>{{ default_passwords.guru }}</code>,
+              murid=<code>{{ default_passwords.murid }}</code>,
+              orang tua=<code>{{ default_passwords.orang_tua }}</code>
+              (akun ortu via sinkron Data Murid)
+            </div>
+          </div>
+          <div class="field-guru">
+            <label>Kelas (penguji / soal)</label>
+            <select name="kelas_penguji">
+              <option value="">— pilih —</option>
+              {% for value, label in kelas_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="help">Wajib untuk Guru Penguji dan Guru Pembuat Soal.</div>
+          </div>
+          <div class="field-murid">
+            <label>NISN</label>
+            <input name="nisn" placeholder="Kosongkan = otomatis">
+          </div>
+          <div class="field-murid">
+            <label>Gelombang</label>
+            <select name="gelombang">
+              {% for g in daftar_gelombang %}
+                <option value="{{ g }}" {% if gelombang_aktif==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field-murid">
+            <label>Jenis Kelamin</label>
+            <select name="jenis_kelamin">
+              <option value="">—</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+          <div class="field-murid">
+            <label>Asal Sekolah</label>
+            <input name="asal_sekolah">
+          </div>
+          <div class="field-murid">
+            <label>Pilihan Kelas 1</label>
+            <select name="pilihan_kelas_1">
+              {% for value, label in kelas_choices %}
+                <option value="{{ value }}" {% if value=='reguler' %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Tambah Pengguna</button>
+        </div>
+      </form>
+    </div>
+
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Filter Peran</label>
+          <select name="role">
+            <option value="">Semua</option>
+            {% for value, label in role_choices %}
+              <option value="{{ value }}" {% if role==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status">
+            <option value="">Semua</option>
+            <option value="aktif" {% if status=='aktif' %}selected{% endif %}>Aktif</option>
+            <option value="nonaktif" {% if status=='nonaktif' %}selected{% endif %}>Nonaktif</option>
+          </select>
+        </div>
+        <div class="full">
+          <label>Cari nama / username</label>
+          <input name="q" value="{{ q }}">
+        </div>
+        <div style="display:flex;align-items:end;">
+          <button class="btn btn-primary" type="submit">Filter</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama / Username</th>
+            <th>Peran</th>
+            <th>Detail</th>
+            <th>Status</th>
+            <th>Kelola</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in items %}
+          <tr>
+            <td>
+              <strong>{{ u.nama_lengkap }}</strong><br>
+              <small>{{ u.username }}</small>
+            </td>
+            <td><span class="badge">{{ u.role_label }}</span></td>
+            <td>
+              {% if u.role in ['guru', 'guru_soal'] %}
+                {{ u.kelas_label }}
+              {% elif u.role == 'murid' and u.murid_profile %}
+                NISN {{ u.murid_profile.nisn }}
+                {% if u.murid_profile.gelombang %} · {{ label_gelombang(u.murid_profile.gelombang) }}{% endif %}
+              {% elif u.role == 'orang_tua' and u.anak_asuh %}
+                Anak: {{ u.anak_asuh.user.nama_lengkap if u.anak_asuh.user else '-' }}
+                · NISN {{ u.anak_asuh.nisn }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_active_user %}<span class="badge badge-success">Aktif</span>
+              {% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}
+            </td>
+            <td>
+              <details class="pengguna-aksi">
+                <summary class="btn btn-sm btn-secondary">Kelola</summary>
+                <div class="pengguna-aksi-box">
+                  <form method="post" action="{{ url_for('admin.pengguna_update', user_id=u.id) }}">
+                    <input type="hidden" name="role_filter" value="{{ role }}">
+                    <label>Nama</label>
+                    <input name="nama_lengkap" value="{{ u.nama_lengkap }}" required>
+                    {% if u.role in ['guru', 'guru_soal'] %}
+                    <label>Kelas</label>
+                    <select name="kelas_penguji">
+                      {% for value, label in kelas_choices %}
+                        <option value="{{ value }}" {% if u.kelas_penguji==value %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                    {% endif %}
+                    <button class="btn btn-sm btn-primary" type="submit">Simpan Data</button>
+                  </form>
+
+                  <form method="post" action="{{ url_for('admin.pengguna_ganti_username', user_id=u.id) }}">
+                    <input type="hidden" name="role_filter" value="{{ role }}">
+                    <label>Username baru</label>
+                    <input name="username_baru" value="{{ u.username }}" required>
+                    <button class="btn btn-sm btn-secondary" type="submit">Ganti Username</button>
+                  </form>
+
+                  <form method="post" action="{{ url_for('admin.pengguna_reset_password', user_id=u.id) }}"
+                        onsubmit="return confirm('Reset password untuk {{ u.username }}?');">
+                    <input type="hidden" name="role_filter" value="{{ role }}">
+                    <label>Password baru</label>
+                    <input name="password_baru" placeholder="Kosongkan = default {{ default_passwords[u.role] }}">
+                    <button class="btn btn-sm btn-danger" type="submit">Reset Password</button>
+                  </form>
+
+                  {% if u.id != current_user.id %}
+                  <form method="post" action="{{ url_for('admin.pengguna_toggle', user_id=u.id) }}">
+                    <input type="hidden" name="role_filter" value="{{ role }}">
+                    <button class="btn btn-sm btn-secondary" type="submit">
+                      {% if u.is_active_user %}Nonaktifkan{% else %}Aktifkan{% endif %}
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </details>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">Tidak ada pengguna.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var role = document.getElementById('roleTambah');
+  if (!role) return;
+  function syncFields() {
+    var isGuru = role.value === 'guru' || role.value === 'guru_soal';
+    var isMurid = role.value === 'murid';
+    document.querySelectorAll('.field-guru').forEach(function (el) {
+      el.style.display = isGuru ? '' : 'none';
+    });
+    document.querySelectorAll('.field-murid').forEach(function (el) {
+      el.style.display = isMurid ? '' : 'none';
+    });
+  }
+  role.addEventListener('change', syncFields);
+  syncFields();
+})();
+</script>
+{% endblock %}

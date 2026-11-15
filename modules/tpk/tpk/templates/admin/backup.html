@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Backup Database{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Backup &amp; Restore Database</h1>
+    <p class="page-sub">
+      Database: <strong>{{ db_name }}</strong> · Tahun Ajaran {{ tahun_ajaran }}
+    </p>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Unduh Backup</h3>
+        <p class="help" style="margin-top:0;">
+          Unduh salinan lengkap database dalam format <code>.sql</code>.
+          Simpan file di tempat aman (USB/PC admin).
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="{{ url_for('admin.backup_unduh') }}">Unduh Backup Sekarang</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Restore dari File Backup</h3>
+        <p class="help" style="margin-top:0;color:var(--danger);">
+          Perhatian: restore akan <strong>mengganti data saat ini</strong> dengan isi file backup.
+          Unduh backup terbaru dulu sebelum restore.
+        </p>
+        <form method="post" action="{{ url_for('admin.backup_restore') }}" enctype="multipart/form-data"
+              onsubmit="return confirm('Yakin restore database? Data saat ini akan diganti.');">
+          <div class="form-grid">
+            <div class="full">
+              <label>File backup (.sql)</label>
+              <input type="file" name="backup_file" accept=".sql,.txt" required>
+            </div>
+            <div class="full">
+              <label>Ketik konfirmasi</label>
+              <input name="konfirmasi" placeholder="RESTORE DATABASE" required autocomplete="off">
+              <div class="help">Ketik tepat: <code>RESTORE DATABASE</code></div>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-danger" type="submit">Restore Database</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Panduan Singkat</h3>
+      <ol style="margin:0;padding-left:1.2rem;color:var(--muted);line-height:1.6;">
+        <li>Sebelum perubahan besar / upload gelombang baru, unduh backup terlebih dahulu.</li>
+        <li>File backup berisi struktur tabel + seluruh data (murid, nilai, pengguna, pengaturan).</li>
+        <li>Untuk mengembalikan, unggah file <code>.sql</code> yang sebelumnya diunduh, lalu konfirmasi.</li>
+        <li>Setelah restore, periksa Data Murid / Pengguna untuk memastikan data kembali.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+{% endblock %}

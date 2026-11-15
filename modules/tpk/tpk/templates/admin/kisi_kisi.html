@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Kisi-kisi Soal{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div class="print-header">
+      <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
+      <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+      <h3>Kisi-kisi Soal Tes Tertulis</h3>
+      <p>Tahun Ajaran {{ tahun_ajaran }}{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</p>
+    </div>
+
+    <div class="actions no-print" style="margin-bottom:1rem;">
+      <button class="btn btn-primary" type="button" onclick="window.print()">Cetak Kisi-kisi</button>
+      <a class="btn btn-secondary" href="{{ url_for('admin.analisis_soal') }}">Analisis Soal</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.soal_list') }}">Bank Soal</a>
+    </div>
+
+    <form class="panel no-print" method="post" style="margin-bottom:1rem;">
+      <input type="hidden" name="aksi" value="publikasi">
+      <input type="hidden" name="kelas" value="{{ kelas }}">
+      <label style="display:flex;gap:0.5rem;align-items:center;">
+        <input type="checkbox" name="tampilkan_kisi_kisi" value="1" {% if tampilkan %}checked{% endif %}>
+        Tampilkan kisi-kisi di akun orang tua &amp; murid
+      </label>
+      <div class="actions" style="margin-top:0.6rem;">
+        <button class="btn btn-sm btn-primary" type="submit">Simpan Publikasi</button>
+      </div>
+    </form>
+
+    <form class="panel no-print" method="get" style="margin-bottom:1rem;">
+      <div class="form-grid">
+        <div>
+          <label>Filter Kelas</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kelas</th>
+            <th>Materi</th>
+            <th>Indikator</th>
+            <th>Level</th>
+            <th>Bobot</th>
+            <th>Kunci</th>
+            <th class="no-print">Edit kisi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ s.kelas_label }}</td>
+            <td>{{ s.materi or '—' }}</td>
+            <td>{{ s.indikator or '—' }}</td>
+            <td>{{ s.level_kognitif or '—' }}</td>
+            <td>{{ s.bobot }}</td>
+            <td>{{ s.jawaban_benar }}</td>
+            <td class="no-print">
+              <details>
+                <summary class="btn btn-sm btn-secondary">Ubah</summary>
+                <form method="post" style="margin-top:0.5rem;">
+                  <input type="hidden" name="aksi" value="update_kisi">
+                  <input type="hidden" name="soal_id" value="{{ s.id }}">
+                  <input type="hidden" name="kelas" value="{{ kelas }}">
+                  <label>Materi</label>
+                  <input name="materi" value="{{ s.materi or '' }}">
+                  <label>Level</label>
+                  <select name="level_kognitif">
+                    <option value="">—</option>
+                    {% for lv in ['C1','C2','C3','C4','C5','C6','Mudah','Sedang','Sulit'] %}
+                      <option value="{{ lv }}" {% if s.level_kognitif==lv %}selected{% endif %}>{{ lv }}</option>
+                    {% endfor %}
+                  </select>
+                  <label>Indikator</label>
+                  <textarea name="indikator">{{ s.indikator or '' }}</textarea>
+                  <button class="btn btn-sm btn-primary" type="submit">Simpan</button>
+                </form>
+              </details>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8">Belum ada soal aktif.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="print-footnote">Kisi-kisi juga dapat dilihat orang tua &amp; murid jika publikasi aktif.</p>
+  </div>
+</section>
+{% endblock %}

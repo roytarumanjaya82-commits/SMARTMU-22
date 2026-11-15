@@ -5,52 +5,105 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SMARTMU 22</title>
   <link rel="icon" href="{{ url_for('static', filename='logo-smpm22.png') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}?v=16">
 </head>
-<body>
-  <div class="bungkus">
-    <header class="puncak">
-      <div class="identitas">
-        <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
-        <div>
-          <h1>SMARTMU 22</h1>
-          <p>SMP Muhammadiyah 22 Setiabudi Pamulang</p>
-        </div>
+<body class="beranda">
+  {# id mencegah BatangPortal menyisipkan menu atas ganda #}
+  <div class="portal-shell" id="smartmu-switch">
+    <aside class="portal-sidebar" aria-label="Menu portal">
+      <div class="sidebar-atas">
+        <a class="sidebar-brand" href="{{ url_for('beranda') }}">
+          <img src="{{ url_for('static', filename='logo-smpm22.png') }}" alt="Logo SMP Muhammadiyah 22">
+          <div>
+            <strong>SMARTMU 22</strong>
+            <small>Setiabudi Pamulang</small>
+          </div>
+        </a>
+        <button type="button" class="sidebar-garis" id="sidebar-garis" aria-label="Buka menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
-      <div class="aksi">
+
+      <nav class="sidebar-menu" id="sidebar-menu">
+        <p class="sidebar-judul">Portal</p>
+        {% if modul_list %}
+          {% for modul in modul_list %}
+          <a class="sidebar-item" href="{{ modul.href }}">
+            <span class="sidebar-dot" style="background: {{ modul.warna }}"></span>
+            <span class="sidebar-teks">
+              <strong>{{ modul.nama }}</strong>
+              <small>{{ modul.ringkas }}</small>
+            </span>
+          </a>
+          {% endfor %}
+        {% else %}
+          <p class="sidebar-kosong">Belum ada portal untuk akun ini.</p>
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-kaki">
         {% if session.role == 'admin' %}
-        <form method="post" action="{{ url_for('atur_rawat') }}">
+        <a href="{{ url_for('pengguna') }}">Pengguna</a>
+        <a href="{{ url_for('cadangan') }}">Cadangan</a>
+        {% endif %}
+        <a href="{{ url_for('keluar') }}">Keluar</a>
+      </div>
+    </aside>
+
+    <main class="portal-utama">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for jenis, pesan in messages %}
+        <div class="flash {{ jenis }}">{{ pesan }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <header class="utama-kepala">
+        <div>
+          <p class="eyebrow">Beranda</p>
+          <h1>Selamat datang, {{ session.nama }}</h1>
+          <p class="sapa">Pilih portal di menu samping untuk membuka layanan sekolah.</p>
+        </div>
+        {% if session.role == 'admin' %}
+        <form class="utama-aksi" method="post" action="{{ url_for('atur_rawat') }}">
           <input type="hidden" name="token" value="{{ rawat_token }}">
           <input type="hidden" name="nyala" value="{{ '0' if rawat else '1' }}">
           <button class="tombol{% if rawat %} rawat-nyala{% endif %}" type="submit">{{ 'Matikan maintenance' if rawat else 'Maintenance' }}</button>
         </form>
-        <a class="keluar" href="{{ url_for('pengguna') }}">Pengguna</a>
-        <a class="keluar" href="{{ url_for('cadangan') }}">Cadangan</a>
         {% endif %}
-        <a class="keluar" href="{{ url_for('keluar') }}">Keluar</a>
+      </header>
+
+      {% if session.role == 'admin' and rawat %}
+      <p class="peringatan">Maintenance sedang aktif. Presensi, eRapor, Tahfidz, Rapor BK, Inventaris, Kelas Koding, dan TPK menampilkan tulisan maintenance.</p>
+      {% endif %}
+
+      {% if not modul_list %}
+      <div class="lembar">
+        <h2>Belum ada akses portal</h2>
+        <p>Minta admin mencentang portal pada menu Pengguna.</p>
       </div>
-    </header>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for jenis, pesan in messages %}
-      <div class="flash {{ jenis }}">{{ pesan }}</div>
-      {% endfor %}
-    {% endwith %}
-    {% if session.role == 'admin' and rawat %}
-    <p class="peringatan">Maintenance sedang aktif. Presensi, eRapor, Tahfidz, Rapor BK, Inventaris, dan Kelas Koding menampilkan tulisan maintenance.</p>
-    {% endif %}
-    <p class="sapa">Selamat datang, <strong>{{ session.nama }}</strong>. Pilih portal yang akan dibuka.</p>
-    {% if not modul_list %}
-    <p class="sapa">Belum ada portal yang dibuka untuk akun ini. Minta admin mencentang portal pada menu Pengguna.</p>
-    {% endif %}
-    <section class="kisi">
-      {% for modul in modul_list %}
-      <a class="kartu" href="{{ modul.href }}">
-        <span style="background: {{ modul.warna }}"></span>
-        <h2>{{ modul.nama }}</h2>
-        <p>{{ modul.ringkas }}</p>
-      </a>
-      {% endfor %}
-    </section>
+      {% else %}
+      <div class="lembar ringkas-portal">
+        <h2>Portal tersedia</h2>
+        <p>{{ modul_list|length }} layanan siap dibuka dari sidebar.</p>
+        <ul class="daftar-pintas">
+          {% for modul in modul_list %}
+          <li><a href="{{ modul.href }}">{{ modul.nama }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </main>
   </div>
+  <script>
+  (function () {
+    var tombol = document.getElementById("sidebar-garis");
+    var shell = document.querySelector(".portal-shell");
+    if (!tombol || !shell) return;
+    tombol.addEventListener("click", function () {
+      var buka = shell.classList.toggle("menu-buka");
+      tombol.setAttribute("aria-expanded", buka ? "true" : "false");
+    });
+  })();
+  </script>
 </body>
 </html>

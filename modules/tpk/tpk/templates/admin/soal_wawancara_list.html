@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Soal Wawancara{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Bank Soal Wawancara</h1>
+    <p class="page-sub">Panduan pertanyaan wawancara untuk tiap kelas. Total seed awal: 8 soal per kelas.</p>
+
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Filter Kelas</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Tambah Soal Wawancara</h3>
+        <form method="post">
+          <div class="form-grid">
+            <div>
+              <label>Kelas</label>
+              <select name="kelas_tujuan" required>
+                {% for value, label in kelas_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label>Urutan</label>
+              <input type="number" name="urutan" value="1" min="1">
+            </div>
+            <div>
+              <label>Bobot (poin)</label>
+              <input type="number" name="bobot" value="12" min="1" max="100" required>
+            </div>
+            <div class="full">
+              <label>Aspek terkait</label>
+              <input name="aspek" placeholder="Contoh: Motivasi tahfidz">
+            </div>
+            <div class="full">
+              <label>Pertanyaan wawancara</label>
+              <textarea name="pertanyaan" required></textarea>
+            </div>
+            <div class="full">
+              <label>Panduan penilaian untuk guru</label>
+              <textarea name="panduan"></textarea>
+            </div>
+          </div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Tambah Soal</button></div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h3>Daftar Soal</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Kelas</th><th>No</th><th>Pertanyaan</th><th>Bobot</th><th>Aspek</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for s in items %}
+              <tr>
+                <td>{{ s.kelas_label }}</td>
+                <td>{{ s.urutan }}</td>
+                <td>
+                  {{ s.pertanyaan }}
+                  {% if s.panduan %}<br><small class="help">Panduan: {{ s.panduan }}</small>{% endif %}
+                </td>
+                <td>{{ s.bobot }}</td>
+                <td>{{ s.aspek or '-' }}</td>
+                <td>
+                  {% if s.is_active %}<span class="badge badge-success">Aktif</span>
+                  {% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}
+                </td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.soal_wawancara_toggle', soal_id=s.id) }}">
+                    <button class="btn btn-sm btn-secondary" type="submit">Toggle</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7">Belum ada soal wawancara.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Tes Tertulis{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">
+      {% if jenis_tes == 'susulan' %}Tes Susulan{% else %}Tes Tertulis{% endif %}
+      Seluruh Kelas
+    </h1>
+    <p class="page-sub">
+      {{ label_gelombang(gelombang) }} · Tahun {{ tahun }}
+      {% if jenis_tes == 'susulan' %}· <span class="badge badge-warning">Jalur Tes Susulan</span>{% endif %}.
+      Progress: <strong>{{ progress }}</strong>
+    </p>
+
+    {% if not kunci_aktif %}
+    <div class="panel">
+      {% if jenis_tes == 'susulan' %}
+      <p>
+        Anda terdaftar <strong>tes susulan</strong> karena berhalangan hadir.
+        Jadwal/password susulan belum dibuka admin. Hubungi pengawas.
+      </p>
+      {% else %}
+      <p>Pengerjaan soal untuk gelombang ini <strong>belum dibuka</strong> oleh admin.</p>
+      {% endif %}
+    </div>
+    {% elif not sudah_masuk %}
+    <div class="panel">
+      <h3>Password Masuk {% if jenis_tes == 'susulan' %}Tes Susulan{% else %}Soal{% endif %}</h3>
+      <p class="help">
+        Minta password masuk dari pengawas/admin. Setelah masuk, layar soal terkunci
+        sampai Anda submit dan memasukkan password keluar.
+      </p>
+      <form method="post">
+        <input type="hidden" name="aksi" value="masuk">
+        <div class="form-grid">
+          <div>
+            <label>Password Masuk</label>
+            <input type="password" name="password_masuk" required autocomplete="off" autofocus>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Buka Pengerjaan Soal</button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="panel" style="margin-bottom:1rem;">
+      <p style="margin:0;">
+        <span class="badge badge-success">Mode pengerjaan aktif</span>
+        Kerjakan tiap kelas. Jawaban tersimpan otomatis. Setelah submit, minta
+        <strong>password keluar</strong> ke pengawas.
+      </p>
+    </div>
+
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Kelas Soal</th>
+            <th>Progress</th>
+            <th>Nilai</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sesi %}
+          <tr>
+            <td><strong>{{ s.label }}</strong></td>
+            <td>
+              {% if s.jumlah_soal %}
+                {{ s.terjawab }}/{{ s.jumlah_soal }} terjawab
+              {% else %}—{% endif %}
+            </td>
+            <td>{% if s.nilai is not none %}<strong>{{ s.nilai }}</strong>{% else %}—{% endif %}</td>
+            <td>
+              {% if s.jumlah_soal == 0 %}
+                <span class="badge badge-warning">Soal belum ada</span>
+              {% elif s.butuh_keluar %}
+                <span class="badge badge-warning">Menunggu password keluar</span>
+              {% elif s.selesai %}
+                <span class="badge badge-success">Selesai</span>
+              {% elif s.status_sesi == 'aktif' %}
+                <span class="badge badge-warning">Sedang dikerjakan</span>
+              {% else %}
+                <span class="badge badge-warning">Belum</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.jumlah_soal > 0 %}
+                {% if s.butuh_keluar %}
+                  <a class="btn btn-sm btn-primary" href="{{ url_for('murid.tes_kelas', kelas=s.kode) }}">Password Keluar</a>
+                {% elif s.selesai %}
+                  <span class="help">Selesai (reset via admin jika error)</span>
+                {% else %}
+                  <a class="btn btn-sm btn-primary" href="{{ url_for('murid.tes_kelas', kelas=s.kode) }}">
+                    {% if s.terjawab %}Lanjutkan{% else %}Kerjakan{% endif %}
+                  </a>
+                {% endif %}
+              {% else %}
+                <span class="help">Menunggu admin</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <div class="actions">
+      <a class="btn btn-secondary" href="{{ url_for('murid.hasil_tes') }}">Lihat Hasil Tes Tertulis</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

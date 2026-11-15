@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Hasil Gabungan & Rekomendasi{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Hasil Gabungan &amp; Rekomendasi Kelas</h1>
+        <p class="page-sub">
+          Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> · {{ label_gelombang(gelombang) }}.
+          Tiap kelas dihitung dengan bobotnya sendiri (Pengaturan).
+          <strong>Rekomendasi = kelas dengan skor gabungan tertinggi</strong>
+          (contoh: skor Multimedia tertinggi → direkomendasikan ke Multimedia).
+          Seri: prioritas pilihan kelas murid.
+        </p>
+      </div>
+      <div class="actions no-print">
+        <a class="btn btn-secondary" href="{{ url_for('admin.hasil_tes_tertulis', gelombang=gelombang) }}">Tes Tertulis</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.hasil_wawancara', gelombang=gelombang) }}">Wawancara</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.psikotes_list', gelombang=gelombang) }}">Psikotes</a>
+        <a class="btn btn-primary" href="{{ url_for('admin.penempatan_akhir', gelombang=gelombang) }}">Laporan Akhir Penempatan</a>
+        <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak</button>
+      </div>
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>NISN</th>
+            <th>Rata-rata Tes</th>
+            <th>Psikotes</th>
+            {% for value, label in kelas_choices %}
+              <th>Gab. {{ label }}</th>
+            {% endfor %}
+            <th>Skor Akhir</th>
+            <th>Rekomendasi</th>
+            <th>Ditetapkan</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in items %}
+          {% set gabungan = m.skor_gabungan_per_kelas() %}
+          <tr>
+            <td>{{ m.user.nama_lengkap }}</td>
+            <td>{{ m.nisn }}</td>
+            <td>{{ m.skor_tes_tertulis() if m.skor_tes_tertulis() is not none else '—' }}</td>
+            <td>{{ m.skor_psikotes() if m.skor_psikotes() is not none else '—' }}</td>
+            {% for value, label in kelas_choices %}
+              <td>
+                {% if value in gabungan %}
+                  {% if m.rekomendasi_kelas() == value %}<strong>{{ gabungan[value] }}</strong>{% else %}{{ gabungan[value] }}{% endif %}
+                {% else %}
+                  <span class="help">—</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td><strong>{{ m.nilai_rekomendasi() if m.nilai_rekomendasi() is not none else '—' }}</strong></td>
+            <td>
+              {% if m.rekomendasi_kelas() %}
+                <span class="badge badge-success">{{ m.rekomendasi_kelas_label }}</span>
+              {% else %}
+                <span class="badge badge-warning">Belum ada</span>
+              {% endif %}
+            </td>
+            <td>{{ m.kelas_akhir_label }}</td>
+            <td class="no-print">
+              <a class="btn btn-sm btn-primary" href="{{ url_for('admin.laporan_individu', murid_id=m.id) }}">Detail</a>
+              <a class="btn btn-sm btn-secondary" href="{{ url_for('admin.murid_detail', murid_id=m.id) }}">Tetapkan</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 9 + kelas_choices|length }}">Belum ada data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

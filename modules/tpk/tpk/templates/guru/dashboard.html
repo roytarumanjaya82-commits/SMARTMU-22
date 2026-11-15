@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Guru{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Dashboard Guru Penguji</h1>
+    <p class="page-sub">
+      Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> · {{ label_gelombang(gelombang) }}.
+      Anda penguji <strong>sesi wawancara {{ kelas_label }}</strong>.
+    </p>
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Pilih Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+    <div class="stats">
+      <div class="stat"><div class="label">Total Murid</div><div class="value">{{ total_murid }}</div></div>
+      <div class="stat"><div class="label">Sudah Dinilai Sesi Ini</div><div class="value">{{ sudah }}</div></div>
+      <div class="stat"><div class="label">Belum Dinilai Sesi Ini</div><div class="value">{{ belum }}</div></div>
+      <div class="stat"><div class="label">Sesi Anda</div><div class="value" style="font-size:1.05rem;padding-top:0.55rem;">{{ kelas_label }}</div></div>
+    </div>
+    <div class="panel">
+      <h3>Mulai Penilaian Sesi {{ kelas_label }}</h3>
+      <p>Masukkan nilai wawancara {{ kelas_label }} untuk setiap murid. Rekomendasi kelas akhir dihitung otomatis setelah semua sesi selesai.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('guru.soal_wawancara') }}">Buka Daftar Penilaian</a>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Murid Terbaru</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nama</th><th>Progress 5 Sesi</th><th>Rekomendasi</th><th></th></tr></thead>
+          <tbody>
+            {% for m in calon[:10] %}
+            <tr>
+              <td>{{ m.user.nama_lengkap }}</td>
+              <td><span class="badge">{{ m.progress_wawancara_label }}</span></td>
+              <td>{{ m.rekomendasi_kelas_label }}</td>
+              <td><a class="btn btn-sm btn-primary" href="{{ url_for('guru.nilai_murid', murid_id=m.id) }}">Input Nilai</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Belum ada murid.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

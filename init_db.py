@@ -17,6 +17,7 @@ from pengaturan import (  # noqa: E402
     MYSQL_USER,
     PRESENSI_DATABASE,
     SMARTMU_DATABASE,
+    TPK_DATABASE,
 )
 
 
@@ -148,6 +149,13 @@ def siapkan_inventaris():
     print("Database inventaris siap.")
 
 
+def siapkan_tpk():
+    from muat_tpk import muat
+
+    muat()
+    print(f"Database TPK siap ({TPK_DATABASE}).")
+
+
 def siapkan_erapor(cur):
     if ada_tabel(cur, ERAPOR_DATABASE, "users"):
         print("Database eRapor sudah ada, tidak diisi ulang.")
@@ -176,6 +184,7 @@ def main():
         conn.close()
     siapkan_tahfidz()
     siapkan_inventaris()
+    siapkan_tpk()
     print("Selesai. Jalankan: python app.py")
     print("Buka http://127.0.0.1:5000  lalu masuk dengan admin / admin123")
 

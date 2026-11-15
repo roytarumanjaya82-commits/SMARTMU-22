@@ -75,6 +75,13 @@ MODUL = (
         "ringkas": "Data barang, peminjaman, laporan, dan cadangan Google Drive.",
         "warna": "#b45309",
     },
+    {
+        "kunci": "tpk",
+        "href": "/tpk/",
+        "nama": "TPK",
+        "ringkas": "Tes penempatan kelas: tes tertulis, wawancara, dan penetapan kelas.",
+        "warna": "#0e7490",
+    },
 )
 
 
@@ -286,8 +293,16 @@ def create_app():
 
                         akun_koding = cari_koding(username, password)
                         if not akun_koding:
-                            flash("Username atau kata sandi salah.", "error")
-                            return render_template("login.html", next=request.form.get("next") or "")
+                            # Akun tidak dikenal di SMARTMU → arahkan ke login TPK
+                            from urllib.parse import urlencode
+
+                            q = urlencode(
+                                {
+                                    "dari": "smartmu",
+                                    "username": username,
+                                }
+                            )
+                            return redirect(f"/tpk/auth/login?{q}")
                         session.clear()
                         session["user_id"] = akun_koding["id"]
                         session["username"] = akun_koding["username"]
@@ -377,6 +392,7 @@ def create_app():
             ("smartmu_bk", "/bk"),
             ("smartmu_inventaris", "/inventaris"),
             ("smartmu_koding", "/koding"),
+            ("smartmu_tpk", "/tpk"),
             ("remember_token", "/inventaris"),
         ):
             respon.delete_cookie(nama, path=jalur)

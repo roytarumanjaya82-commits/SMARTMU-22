@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Input Nilai Sesi {{ kelas_label }}{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Input Nilai · Sesi Wawancara {{ kelas_label }}</h1>
+    <p class="page-sub">
+      Murid: <strong>{{ murid.user.nama_lengkap }}</strong> ({{ murid.nisn }}) ·
+      Progress: <strong>{{ murid.progress_wawancara_label }}</strong> ·
+      Rekomendasi saat ini: <strong>{{ murid.rekomendasi_kelas_label }}</strong>
+    </p>
+
+    <div class="panel">
+      <h3>Rekap Nilai Seluruh Sesi (sejauh ini)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Sesi Wawancara</th><th>Nilai</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            <tr>
+              <td>{{ label }}{% if value == kelas %} <span class="badge badge-info">sesi Anda</span>{% endif %}</td>
+              <td>
+                {% if value in nilai_per_kelas %}
+                  <strong>{{ nilai_per_kelas[value] }}</strong>
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>
+                {% if murid.rekomendasi_kelas() == value %}
+                  <span class="badge badge-success">Tertinggi</span>
+                {% elif value in nilai_per_kelas %}
+                  <span class="badge">Sudah</span>
+                {% else %}
+                  <span class="badge badge-warning">Belum</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if not soal_list %}
+    <div class="panel">
+      <p>Belum ada soal wawancara aktif untuk sesi {{ kelas_label }}. Hubungi admin.</p>
+      <a class="btn btn-secondary" href="{{ url_for('guru.soal_wawancara') }}">Kembali</a>
+    </div>
+    {% else %}
+      {% if total_bobot != 100 %}
+      <div class="flash warning">Total bobot soal harus 100 (saat ini {{ total_bobot }}).</div>
+      {% endif %}
+
+      <form method="post">
+        <div class="panel">
+          <h3>Form Nilai Sesi {{ kelas_label }} (Total 100)</h3>
+          <p class="help">Isi catatan jawaban murid dan skor tiap soal wawancara sesi ini saja.</p>
+        </div>
+
+        {% for s in soal_list %}
+        {% set j = jawaban_tersimpan.get(s.id) %}
+        <div class="panel question-score">
+          <h3>{{ s.urutan }}. {{ s.pertanyaan }}</h3>
+          <div style="display:flex;gap:0.45rem;flex-wrap:wrap;margin-bottom:0.7rem;">
+            {% if s.aspek %}<span class="badge">{{ s.aspek }}</span>{% endif %}
+            <span class="badge badge-info">Skor maks {{ s.bobot }}</span>
+          </div>
+          {% if s.panduan %}<p class="help" style="margin-top:0;">Panduan: {{ s.panduan }}</p>{% endif %}
+          <div class="form-grid" style="margin-top:0.8rem;">
+            <div class="full">
+              <label>Catatan / jawaban murid</label>
+              <textarea name="jawaban_{{ s.id }}" placeholder="Ringkasan jawaban murid pada sesi {{ kelas_label }}...">{{ j.jawaban_murid if j else '' }}</textarea>
+            </div>
+            <div>
+              <label>Skor (0–{{ s.bobot }})</label>
+              <input type="number" step="0.01" min="0" max="{{ s.bobot }}" name="skor_{{ s.id }}"
+                     value="{{ j.skor if j else '' }}" required>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="panel">
+          <div class="form-grid">
+            <div class="full">
+              <label>Catatan umum sesi {{ kelas_label }}</label>
+              <textarea name="catatan">{{ penilaian.catatan if penilaian else '' }}</textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit" {% if total_bobot != 100 %}disabled{% endif %}>
+              Simpan Nilai Sesi {{ kelas_label }}
+            </button>
+            <a class="btn btn-secondary" href="{{ url_for('guru.soal_wawancara') }}">Kembali ke Daftar</a>
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

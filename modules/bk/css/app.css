@@ -270,6 +270,11 @@ td.cap.BB { background: #fbeeee; text-align: center; }
 .keep { break-inside: avoid; }
 table.rekap { font-size: 10px; }
 table.rekap th { font-size: 9.5px; }
+table.catatan td.isi-catatan {
+  min-height: 3.2em;
+  padding: 6px 8px;
+  white-space: pre-wrap;
+}
 
 .modal {
   position: fixed; inset: 0; background: rgba(20, 32, 26, 0.45);

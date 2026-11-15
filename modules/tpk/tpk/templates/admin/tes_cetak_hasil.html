@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Cetak Hasil Tes Tertulis{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div class="print-header">
+      <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
+      <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+      <h3>Hasil Tes Tertulis Seluruh Peserta</h3>
+      <p>Tahun Ajaran {{ tahun_ajaran }} · {{ label_gelombang(gelombang) }}</p>
+    </div>
+
+    <div class="actions no-print" style="margin-bottom:1rem;">
+      <button class="btn btn-primary" type="button" onclick="window.print()">Cetak / PDF</button>
+      <a class="btn btn-secondary" href="{{ url_for('admin.tes_monitoring', gelombang=gelombang) }}">Monitoring</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.analisis_soal', gelombang=gelombang) }}">Analisis Soal</a>
+      <a class="btn btn-secondary" href="{{ url_for('admin.kisi_kisi') }}">Kisi-kisi</a>
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>NISN</th>
+            {% for value, label in kelas_choices %}
+              <th>{{ label }}</th>
+            {% endfor %}
+            <th>Rata-rata</th>
+            <th>Progress</th>
+            <th>Jalur</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in items %}
+          {% set nilai = m.nilai_tes_per_kelas() %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ m.user.nama_lengkap }}</td>
+            <td>{{ m.nisn }}</td>
+            {% for value, label in kelas_choices %}
+              <td>{% if value in nilai %}<strong>{{ nilai[value] }}</strong>{% else %}—{% endif %}</td>
+            {% endfor %}
+            <td><strong>{{ m.skor_tes_tertulis() if m.skor_tes_tertulis() is not none else '—' }}</strong></td>
+            <td>{{ m.progress_tes_label }}</td>
+            <td>{% if m.is_tes_susulan %}Susulan{% else %}Reguler{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 7 + kelas_choices|length }}">Belum ada peserta.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="print-footnote">Dicetak dari Monitoring Tes · TPK SMARTMU22</p>
+  </div>
+</section>
+{% endblock %}

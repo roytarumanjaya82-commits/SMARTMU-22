@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Akses Ditolak{% endblock %}
+{% block content %}
+<section class="page"><div class="container narrow panel">
+  <h1>403 · Akses Ditolak</h1>
+  <p>Anda tidak memiliki hak untuk membuka halaman ini.</p>
+  <a class="btn btn-primary" href="{{ url_for('main.index') }}">Kembali</a>
+</div></section>
+{% endblock %}

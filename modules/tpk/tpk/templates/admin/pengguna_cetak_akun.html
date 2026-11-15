@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Cetak Akun Pengguna{% endblock %}
+{% block content %}
+<section class="page cetak-akun-page">
+  <div class="container">
+    <div class="no-print" style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Cetak Daftar Username &amp; Password</h1>
+        <p class="page-sub">
+          Pilih level akun, tampilkan tabel, lalu cetak / simpan sebagai PDF.
+          Password yang ditampilkan adalah <strong>password default/awal</strong>.
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('admin.pengguna_list') }}">Kembali ke Pengguna</a>
+      </div>
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Level Akun</label>
+          <select name="role" required>
+            <option value="">— pilih level —</option>
+            {% for value, label in cetak_roles %}
+              <option value="{{ value }}" {% if role==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Gelombang (Murid / Orang Tua)</label>
+          <select name="gelombang">
+            <option value="">Semua gelombang</option>
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+          <div class="help">Untuk guru penguji / pembuat soal, filter gelombang diabaikan.</div>
+        </div>
+        <div style="display:flex;align-items:end;">
+          <button class="btn btn-primary" type="submit">Tampilkan Daftar</button>
+        </div>
+      </div>
+    </form>
+
+    {% if role %}
+    <div class="panel print-sheet">
+      <div class="print-header">
+        <img src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo" class="print-logo">
+        <div>
+          <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+          <h3>Daftar Akun Login · {{ role_label }}</h3>
+          <p>
+            Tahun Ajaran {{ tahun_ajaran }}
+            {% if role not in ['guru', 'guru_soal'] and gelombang %} · {{ label_gelombang(gelombang) }}{% elif role not in ['guru', 'guru_soal'] %} · Semua gelombang{% endif %}
+            · Password default: <strong>{{ password_default }}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="actions no-print" style="margin-bottom:1rem;">
+        <button class="btn btn-primary" type="button" onclick="window.print()">Cetak / Simpan PDF</button>
+        <span class="help" style="align-self:center;">Di dialog cetak, pilih printer <strong>Microsoft Print to PDF</strong> atau <strong>Save as PDF</strong>.</span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th style="width:3rem;">No</th>
+              <th>Nama</th>
+              <th>Username</th>
+              <th>Password Default</th>
+              <th>Keterangan</th>
+              <th style="width:5.5rem;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ row.nama }}</td>
+              <td><code>{{ row.username }}</code></td>
+              <td><code>{{ row.password }}</code></td>
+              <td>{{ row.detail }}</td>
+              <td>{{ row.status }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Tidak ada akun pada filter ini.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="print-footnote">
+        Total: <strong>{{ rows|length }}</strong> akun.
+        Password di atas adalah nilai default sistem. Jika pengguna sudah mengganti password, gunakan reset password di menu Pengguna.
+      </p>
+    </div>
+    {% else %}
+    <div class="panel no-print">
+      <p class="help" style="margin:0;">Pilih level akun terlebih dahulu untuk menampilkan daftar.</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

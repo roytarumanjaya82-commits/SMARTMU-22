@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Monitoring Tes{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Monitoring Pengerjaan Soal</h1>
+        <p class="page-sub">
+          Tahun {{ tahun_ajaran }} · {{ label_gelombang(gelombang) }}.
+          Reguler: <code>{{ kunci.password_masuk }}</code>/<code>{{ kunci.password_keluar }}</code>
+          {% if kunci.is_aktif %}<span class="badge badge-success">Dibuka</span>{% else %}<span class="badge badge-danger">Tutup</span>{% endif %}
+          · Susulan: <code>{{ kunci_susulan.password_masuk }}</code>/<code>{{ kunci_susulan.password_keluar }}</code>
+          {% if kunci_susulan.is_aktif %}<span class="badge badge-success">Dibuka</span>{% else %}<span class="badge badge-danger">Tutup</span>{% endif %}
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('admin.tes_cetak_hasil', gelombang=gelombang) }}">Cetak Hasil Peserta</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.analisis_soal', gelombang=gelombang) }}">Analisis Soal</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.kisi_kisi') }}">Kisi-kisi</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.tes_susulan', gelombang=gelombang) }}">Tes Susulan</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.tes_kunci', gelombang=gelombang) }}">Password Tes</a>
+        <button class="btn btn-primary" type="button" onclick="location.reload()">Refresh</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat panel"><div class="label">Sedang mengerjakan</div><div class="value">{{ ringkas.aktif }}</div></div>
+      <div class="stat panel"><div class="label">Online (&lt;45 dtk)</div><div class="value">{{ ringkas.online }}</div></div>
+      <div class="stat panel"><div class="label">Sudah submit</div><div class="value">{{ ringkas.selesai }}</div></div>
+      <div class="stat panel"><div class="label">Ditandai susulan</div><div class="value">{{ ringkas.susulan }}</div></div>
+    </div>
+
+    <form class="panel" method="get" style="margin-bottom:1rem;">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Kelas Soal</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            <option value="aktif" {% if status=='aktif' %}selected{% endif %}>Sedang mengerjakan</option>
+            <option value="selesai" {% if status=='selesai' %}selected{% endif %}>Sudah submit</option>
+          </select>
+        </div>
+        <div>
+          <label>Jalur</label>
+          <select name="jalur" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            <option value="reguler" {% if jalur=='reguler' %}selected{% endif %}>Reguler</option>
+            <option value="susulan" {% if jalur=='susulan' %}selected{% endif %}>Susulan</option>
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th>Murid</th>
+            <th>Kelas Soal</th>
+            <th>Progress</th>
+            <th>% Progres</th>
+            <th>Submit</th>
+            <th>Status</th>
+            <th>Online</th>
+            <th>Pelanggaran</th>
+            <th>Reset</th>
+            <th>Terakhir aktif</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          {% set s = r.sesi %}
+          {% set m = r.murid %}
+          {% set sudah_submit = s.status == 'selesai' %}
+          <tr>
+            <td>
+              <strong>{{ m.user.nama_lengkap if m and m.user else '-' }}</strong><br>
+              <small>{{ m.nisn if m else '-' }} · {{ m.user.username if m and m.user else '' }}</small>
+              {% if m and m.is_tes_susulan %}<br><span class="badge badge-warning">Susulan</span>{% endif %}
+            </td>
+            <td>{{ s.kelas_label }}</td>
+            <td>{{ r.terjawab }}/{{ r.jumlah_soal }}</td>
+            <td>
+              {% if r.jumlah_soal %}
+                {% set persen = ((r.terjawab / r.jumlah_soal) * 100)|round(0)|int %}
+                <strong>{{ persen }}%</strong>
+                <div class="help" style="margin:0.25rem 0 0;height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden;">
+                  <div style="height:100%;width:{{ persen }}%;background:{% if persen >= 100 %}#16a34a{% elif persen >= 50 %}#ca8a04{% else %}#dc2626{% endif %};"></div>
+                </div>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if sudah_submit %}
+                <span class="badge badge-success">Sudah submit</span>
+                {% if s.selesai_at %}<br><small>{{ s.selesai_at.strftime('%H:%M:%S') }}</small>{% endif %}
+              {% else %}
+                <span class="badge badge-danger">Belum submit</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.butuh_password_keluar %}
+                <span class="badge badge-warning">Menunggu password keluar</span>
+              {% elif sudah_submit %}
+                <span class="badge badge-success">Selesai</span>
+              {% else %}
+                <span class="badge badge-warning">Sedang mengerjakan</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.online %}
+                <span class="badge badge-online">Online</span>
+              {% else %}
+                <span class="badge badge-offline">Offline</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.pelanggaran %}
+                <strong>{{ s.pelanggaran }}</strong>
+              {% else %}0{% endif %}
+            </td>
+            <td>{{ s.reset_count or 0 }}</td>
+            <td><small>{{ s.last_seen_at.strftime('%H:%M:%S') if s.last_seen_at else '—' }}</small></td>
+            <td>
+              <form method="post" action="{{ url_for('admin.tes_monitoring_reset', sesi_id=s.id) }}"
+                    onsubmit="return confirm('Reset sesi {{ s.kelas_label }}? Jawaban murid tetap tersimpan.');">
+                <input type="hidden" name="gelombang" value="{{ gelombang }}">
+                <button class="btn btn-sm btn-danger" type="submit">Reset Sesi</button>
+              </form>
+            </td>
+          </tr>
+          {% if s.catatan_pelanggaran %}
+          <tr>
+            <td colspan="11"><small class="help" style="white-space:pre-wrap;">{{ s.catatan_pelanggaran }}</small></td>
+          </tr>
+          {% endif %}
+          {% else %}
+          <tr><td colspan="11">Belum ada sesi pengerjaan di gelombang ini.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="help">
+      Reset membuka kembali sesi tanpa menghapus jawaban. Murid login ulang / lanjut mengerjakan dari soal yang sudah diisi.
+      Catatan: browser HP tidak bisa memblokir aplikasi lain di tingkat OS; sistem mendeteksi keluar layar dan mencatat pelanggaran.
+    </p>
+  </div>
+</section>
+<meta http-equiv="refresh" content="20">
+{% endblock %}

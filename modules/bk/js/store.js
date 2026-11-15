@@ -1,4 +1,4 @@
-﻿import { FILE_NAME, FOLDER_NAME, initialState, migrate } from "./model.js?v=13";
+import { FILE_NAME, FOLDER_NAME, initialState, migrate } from "./model.js?v=15";
 
 const DB_NAME = "raport-bk-smpm22";
 const LS_CLIENT = "raportbk.googleClientId";

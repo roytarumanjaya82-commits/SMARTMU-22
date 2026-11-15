@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Tidak Ditemukan{% endblock %}
+{% block content %}
+<section class="page"><div class="container narrow panel">
+  <h1>404 · Halaman Tidak Ditemukan</h1>
+  <p>Halaman yang Anda cari tidak tersedia.</p>
+  <a class="btn btn-primary" href="{{ url_for('main.index') }}">Kembali</a>
+</div></section>
+{% endblock %}

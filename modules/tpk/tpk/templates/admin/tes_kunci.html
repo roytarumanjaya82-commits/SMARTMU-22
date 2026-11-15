@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Password Tes{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Password Masuk &amp; Keluar Soal</h1>
+    <p class="page-sub">
+      Password <strong>reguler</strong> untuk jadwal utama, password <strong>susulan</strong>
+      untuk murid yang berhalangan hadir.
+    </p>
+
+    <form class="panel" method="get" style="margin-bottom:1rem;">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Jenis</label>
+          <select name="jenis" onchange="this.form.submit()">
+            <option value="reguler" {% if jenis=='reguler' %}selected{% endif %}>Tes Reguler</option>
+            <option value="susulan" {% if jenis=='susulan' %}selected{% endif %}>Tes Susulan</option>
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <form class="panel" method="post">
+      <input type="hidden" name="aksi" value="simpan">
+      <input type="hidden" name="gelombang" value="{{ gelombang }}">
+      <input type="hidden" name="jenis" value="{{ jenis }}">
+      <h3>{{ kunci.jenis_label }} · {{ label_gelombang(gelombang) }} · {{ tahun_ajaran }}</h3>
+      <div class="form-grid">
+        <div>
+          <label>Password Masuk Soal</label>
+          <input name="password_masuk" value="{{ kunci.password_masuk }}" required autocomplete="off">
+          <div class="help">Diberikan ke siswa sebelum mengerjakan.</div>
+        </div>
+        <div>
+          <label>Password Keluar Soal</label>
+          <input name="password_keluar" value="{{ kunci.password_keluar }}" required autocomplete="off">
+          <div class="help">Diberikan setelah siswa submit.</div>
+        </div>
+        <div class="full">
+          <label style="display:flex;gap:0.5rem;align-items:center;">
+            <input type="checkbox" name="is_aktif" value="1" {% if kunci.is_aktif %}checked{% endif %}>
+            Buka pengerjaan soal untuk jalur ini
+          </label>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Simpan Password</button>
+        <a class="btn btn-secondary" href="{{ url_for('admin.tes_susulan', gelombang=gelombang) }}">Kelola Tes Susulan</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.tes_monitoring', gelombang=gelombang) }}">Monitoring Tes</a>
+      </div>
+    </form>
+
+    {% if semua %}
+    <div class="panel" style="margin-top:1rem;">
+      <h3>Ringkasan Password</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Gelombang</th><th>Jenis</th><th>Masuk</th><th>Keluar</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for k in semua %}
+            <tr>
+              <td>{{ label_gelombang(k.gelombang) }}</td>
+              <td>{{ k.jenis_label }}</td>
+              <td><code>{{ k.password_masuk }}</code></td>
+              <td><code>{{ k.password_keluar }}</code></td>
+              <td>
+                {% if k.is_aktif %}<span class="badge badge-success">Dibuka</span>
+                {% else %}<span class="badge badge-danger">Ditutup</span>{% endif %}
+              </td>
+              <td>
+                <a class="btn btn-sm btn-secondary" href="{{ url_for('admin.tes_kunci', gelombang=k.gelombang, jenis=k.jenis) }}">Edit</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

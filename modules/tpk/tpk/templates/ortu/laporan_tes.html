@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Laporan Tes Tertulis Anak{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div class="print-header">
+      <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
+      <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+      <h3>Laporan Hasil Tes Tertulis</h3>
+      <p>
+        Anak: {{ murid.user.nama_lengkap }} · NISN {{ murid.nisn }} ·
+        {{ label_gelombang(murid.gelombang) }} · Progress {{ murid.progress_tes_label }}
+      </p>
+    </div>
+
+    <div class="table-wrap panel">
+      <table class="print-table">
+        <thead><tr><th>Kelas Soal</th><th>Benar/Soal</th><th>Nilai</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for value, label in kelas_choices %}
+          {% set ringkas = murid.ringkas_tes_tertulis(value) %}
+          <tr>
+            <td>{{ label }}</td>
+            <td>{% if ringkas.selesai %}{{ ringkas.benar }}/{{ ringkas.total }}{% else %}—{% endif %}</td>
+            <td>{% if ringkas.skor is not none %}<strong>{{ ringkas.skor }}</strong>{% else %}—{% endif %}</td>
+            <td>
+              {% if ringkas.selesai %}
+                <span class="badge badge-success">Selesai</span>
+              {% else %}
+                <span class="badge badge-warning">Belum</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p>Rata-rata: <strong>{{ murid.skor_tes_tertulis() if murid.skor_tes_tertulis() is not none else '—' }}</strong></p>
+    <div class="actions no-print">
+      <a class="btn btn-secondary" href="{{ url_for('ortu.dashboard') }}">Dashboard</a>
+      {% if tampilkan_kisi %}
+      <a class="btn btn-secondary" href="{{ url_for('ortu.kisi_kisi') }}">Kisi-kisi Soal</a>
+      {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('ortu.laporan_gabungan') }}">Hasil Gabungan</a>
+      <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak Laporan</button>
+    </div>
+  </div>
+</section>
+{% endblock %}

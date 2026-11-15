@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Daftar Murid Baru · TPK SMARTMU22{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+  <div class="narrow auth-card">
+    <h1>Pendaftaran Murid Baru</h1>
+    <p class="page-sub">Hanya admin yang dapat mendaftarkan murid. Lengkapi data untuk mengikuti tes penempatan kelas.</p>
+
+    <div class="flash info">
+      Username dibuat otomatis dari <strong>nama murid</strong>.
+      Password default: <strong>{{ default_password }}</strong>
+    </div>
+
+    <form method="post">
+      <div class="form-grid">
+        <div class="full">
+          <label>Nama Lengkap *</label>
+          <input name="nama_lengkap" required placeholder="Contoh: Ahmad Fauzi">
+          <div class="help">Username nanti: ahmadfauzi (otomatis dari nama)</div>
+        </div>
+        <div>
+          <label>NISN *</label>
+          <input name="nisn" required>
+        </div>
+        <div>
+          <label>No. HP</label>
+          <input name="no_hp">
+        </div>
+        <div>
+          <label>Tempat Lahir</label>
+          <input name="tempat_lahir">
+        </div>
+        <div>
+          <label>Tanggal Lahir</label>
+          <input type="date" name="tanggal_lahir">
+        </div>
+        <div>
+          <label>Jenis Kelamin</label>
+          <select name="jenis_kelamin">
+            <option value="">Pilih</option>
+            <option value="L">Laki-laki</option>
+            <option value="P">Perempuan</option>
+          </select>
+        </div>
+        <div>
+          <label>Asal Sekolah</label>
+          <input name="asal_sekolah">
+        </div>
+        <div class="full">
+          <label>Alamat</label>
+          <textarea name="alamat"></textarea>
+        </div>
+        <div>
+          <label>Nama Orang Tua/Wali</label>
+          <input name="nama_ortu">
+        </div>
+        <div>
+          <label>No. HP Orang Tua</label>
+          <input name="no_hp_ortu">
+        </div>
+        <div>
+          <label>Pilihan Kelas 1 *</label>
+          <select name="pilihan_kelas_1" required>
+            <option value="">Pilih kelas</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Pilihan Kelas 2</label>
+          <select name="pilihan_kelas_2">
+            <option value="">Tidak ada</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Daftar</button>
+        <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Sudah punya akun?</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

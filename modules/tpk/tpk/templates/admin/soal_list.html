@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Bank Soal{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Bank Soal Tes Tertulis</h1>
+    <p class="page-sub">
+      Soal mendukung <strong>teks Arab</strong> dan <strong>gambar</strong>
+      (upload file atau tempel hasil Snipping Tool dengan Ctrl+V).
+    </p>
+
+    <div class="stats">
+      {% for value, label in kelas_choices %}
+      <div class="stat panel">
+        <div class="label">{{ label }}</div>
+        <div class="value" style="font-size:1.4rem;">{{ jumlah_per_kelas.get(value, 0) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <form class="panel" method="get" style="margin-bottom:1rem;">
+      <div class="form-grid">
+        <div>
+          <label>Filter Kelas</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <h3>Upload Soal Teks (Excel/CSV){% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</h3>
+      <p class="help" style="margin-top:0;">
+        Kolom teks (termasuk Arab): <code>kelas_tujuan, pertanyaan, opsi_a..d, jawaban_benar, bobot</code>.
+        Untuk soal bergambar, gunakan form manual / edit soal di bawah (Snipping Tool → Ctrl+V).
+      </p>
+      <form method="post" action="{{ url_for('admin.upload_soal') }}" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div>
+            <label>Kelas default</label>
+            <select name="kelas_tujuan" required>
+              {% for value, label in kelas_choices %}
+                <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="full">
+            <label>File soal (.xlsx / .csv)</label>
+            <input type="file" name="soal_file" accept=".xlsx,.csv" required>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Upload Soal Teks</button>
+          <a class="btn btn-secondary" href="{{ url_for('admin.unduh_blanko_soal', kelas=kelas or 'olimpiade') }}">Unduh Blanko</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Tambah Soal (Teks Arab / Gambar)</h3>
+        <form method="post" enctype="multipart/form-data" id="formTambahSoal">
+          <input type="hidden" name="gambar_paste" id="gambarPaste">
+          <div class="form-grid">
+            <div class="full">
+              <label>Kelas Tujuan</label>
+              <select name="kelas_tujuan" required>
+                {% for value, label in kelas_choices %}
+                  <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="full">
+              <label>Pertanyaan (boleh huruf Arab)</label>
+              <textarea name="pertanyaan" class="arabic-field" dir="auto" placeholder="Teks soal atau kosongkan jika hanya gambar"></textarea>
+            </div>
+            <div class="full">
+              <label>Gambar soal (opsional)</label>
+              <input type="file" name="gambar_file" id="gambarFile" accept="image/png,image/jpeg,image/gif,image/webp">
+              <div class="help">Atau snipping tool → klik kotak di bawah → Ctrl+V untuk menempel screenshot.</div>
+              <div class="paste-zone" id="pasteZone" tabindex="0">
+                Tempel gambar di sini (Ctrl+V) · Snipping Tool didukung
+              </div>
+              <div id="pastePreview" class="soal-gambar-preview" hidden></div>
+            </div>
+            <div><label>Opsi A</label><input name="opsi_a" class="arabic-field" dir="auto" required></div>
+            <div><label>Opsi B</label><input name="opsi_b" class="arabic-field" dir="auto" required></div>
+            <div><label>Opsi C</label><input name="opsi_c" class="arabic-field" dir="auto" required></div>
+            <div><label>Opsi D</label><input name="opsi_d" class="arabic-field" dir="auto" required></div>
+            <div>
+              <label>Jawaban Benar</label>
+              <select name="jawaban_benar">
+                <option>A</option><option>B</option><option>C</option><option>D</option>
+              </select>
+            </div>
+            <div><label>Bobot</label><input type="number" name="bobot" value="1" min="1"></div>
+          </div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Tambah Soal</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Daftar Soal{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kelas</th><th>Soal</th><th>Kunci</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for s in items %}
+              <tr>
+                <td>{{ s.kelas_label }}</td>
+                <td class="arabic-field" dir="auto">
+                  {% if s.gambar %}
+                    <img class="soal-thumb" src="{{ url_for('static', filename=s.gambar) }}" alt="gambar soal">
+                  {% endif %}
+                  {{ s.pertanyaan }}
+                </td>
+                <td>{{ s.jawaban_benar }}</td>
+                <td>{% if s.is_active %}<span class="badge badge-success">Aktif</span>{% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}</td>
+                <td>
+                  <div class="actions" style="margin:0;">
+                    <a class="btn btn-sm btn-primary" href="{{ url_for('admin.soal_edit', soal_id=s.id) }}">Edit</a>
+                    <form method="post" action="{{ url_for('admin.soal_toggle', soal_id=s.id) }}">
+                      <button class="btn btn-sm btn-secondary" type="submit">Toggle</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5">Belum ada soal.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/soal_gambar.js') }}"></script>
+{% endblock %}

@@ -14,8 +14,9 @@
   ringkasPengalaman,
   ringkasPrinsip,
   siswaDiKelas,
+  teksCatatanGuruBK,
   usulanCatatanGuru,
-} from "./model.js?v=13";
+} from "./model.js?v=15";
 
 function garis(teks) {
   const isi = String(teks || "").trim();
@@ -170,13 +171,9 @@ export function htmlRaportSiswa(state, siswa, { tanggal, kelas } = {}) {
     </table>
     ${rahasia ? `<p class="pengantar">Layanan individual yang bersifat rahasia tercatat ${rahasia} kali dan tidak diuraikan pada laporan ini.</p>` : ""}
 
-    <h3>F. Catatan Guru BK dan Tindak Lanjut</h3>
+    <h3>F. Catatan Guru BK</h3>
     <table class="kisi catatan">
-      <tr><th>Kekuatan</th><td>${garis(rec.kekuatan || catatanOtomatis.kekuatan)}</td></tr>
-      <tr><th>Perlu pendampingan</th><td>${garis(rec.pendampingan || catatanOtomatis.pendampingan)}</td></tr>
-      <tr><th>Catatan perkembangan</th><td>${garis(rec.catatanGuru || catatanOtomatis.catatanGuru)}</td></tr>
-      <tr><th>Rekomendasi bagi orang tua</th><td>${garis(rec.rekomendasiOrangtua || catatanOtomatis.rekomendasiOrangtua)}</td></tr>
-      <tr><th>Tindak lanjut</th><td>${garis(rec.tindakLanjut || catatanOtomatis.tindakLanjut)}</td></tr>
+      <tr><td class="isi-catatan">${garis(teksCatatanGuruBK(rec, catatanOtomatis))}</td></tr>
     </table>
     ${blokTtd(sekolah, guru, kelas?.waliKelas || "", kelas?.nbmWali || "", sekolah.kota, tanggal)}
   </article>`;
@@ -191,7 +188,7 @@ export function htmlRekapKelas(state, kelas, { tanggal } = {}) {
     ? siswa
         .map((s, i) => {
           const rec = lihatRaport(state, s.id);
-          const ket = rec.kekuatan || rec.catatanGuru || "";
+          const ket = teksCatatanGuruBK(rec);
           const sel = (id) => {
             const kode = rec.bidang[id].predikat;
             return `<td class="tengah ${kode ? `cap ${kode}` : ""}">${esc(kode || "—")}</td>`;

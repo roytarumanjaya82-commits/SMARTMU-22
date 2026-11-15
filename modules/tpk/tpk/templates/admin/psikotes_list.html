@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Skor Psikotes{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Skor Hasil Psikotes</h1>
+        <p class="page-sub">
+          Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> · {{ label_gelombang(gelombang) }}.
+          Bobot psikotes di gabungan: <strong>{{ bobot_psikotes }}%</strong>
+          (Tes {{ bobot_tes }}% + Wawancara {{ bobot_wawancara }}% + Psikotes {{ bobot_psikotes }}%).
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('admin.hasil_gabungan', gelombang=gelombang) }}">Hasil Gabungan</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.pengaturan') }}">Atur Bobot</a>
+      </div>
+    </div>
+
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <h2 class="panel-title" style="margin-top:0;">Upload Skor Psikotes</h2>
+      <p class="help" style="margin-top:0;">
+        Unduh blanko berisi NISN murid {{ label_gelombang(gelombang) }}, isi kolom
+        <strong>nilai_psikotes</strong> dengan skor <strong>mentah 0–165</strong>, lalu unggah.
+        Sistem otomatis mengubah ke <strong>skala 1–100</strong>
+        (rumus: nilai ÷ 165 × 100). Match berdasarkan NISN pada gelombang yang dipilih.
+      </p>
+      <div class="actions" style="margin-bottom:0.9rem;">
+        <a class="btn btn-secondary" href="{{ url_for('admin.unduh_blanko_psikotes', gelombang=gelombang) }}">
+          Unduh Blanko Excel
+        </a>
+      </div>
+      <form method="post" action="{{ url_for('admin.upload_psikotes') }}" enctype="multipart/form-data">
+        <input type="hidden" name="gelombang" value="{{ gelombang }}">
+        <div class="form-grid">
+          <div>
+            <label>File skor (.xlsx / .csv)</label>
+            <input type="file" name="psikotes_file" accept=".xlsx,.csv" required>
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" type="submit">Upload Skor</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    {% if menampilkan_belum_gelombang %}
+    <div class="panel" style="border-left:4px solid #c9a227;">
+      <p class="help" style="margin:0;">
+        Belum ada murid terdaftar di {{ label_gelombang(gelombang) }}.
+        Menampilkan <strong>{{ items|length }}</strong> murid tanpa gelombang
+        (data lama). Menyimpan / upload skor akan meng-assign mereka ke {{ label_gelombang(gelombang) }}.
+      </p>
+    </div>
+    {% endif %}
+
+    <form class="panel" method="post">
+      <input type="hidden" name="gelombang" value="{{ gelombang }}">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama</th>
+              <th>NISN</th>
+              <th>Nilai Psikotes (1–100)</th>
+              <th>Catatan</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in items %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ m.user.nama_lengkap }}</td>
+              <td>{{ m.nisn }}</td>
+              <td style="min-width:8rem;">
+                <input type="number" name="nilai_{{ m.id }}" min="1" max="100" step="0.01"
+                       value="{{ m.nilai_psikotes if m.nilai_psikotes is not none else '' }}"
+                       placeholder="1–100">
+              </td>
+              <td>
+                <input name="catatan_{{ m.id }}" value="{{ m.catatan_psikotes or '' }}" placeholder="Opsional">
+              </td>
+              <td>
+                {% if m.nilai_psikotes is not none %}
+                  <span class="badge badge-success">Terisi</span>
+                {% else %}
+                  <span class="badge badge-warning">Belum</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">Tidak ada murid di gelombang ini.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if items %}
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Simpan Skor Psikotes</button>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</section>
+{% endblock %}

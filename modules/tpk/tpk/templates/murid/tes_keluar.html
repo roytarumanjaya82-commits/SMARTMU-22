@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Password Keluar{% endblock %}
+{% block body_class %}tes-lock-mode{% endblock %}
+{% block content %}
+<section class="page tes-lock-page">
+  <div class="container narrow">
+    <div class="tes-lock-banner">
+      <strong>Submit berhasil · {{ kelas_label }}</strong>
+      <span>Masukkan password keluar dari pengawas untuk meninggalkan layar soal.</span>
+    </div>
+    <div class="panel">
+      <h3>Password Keluar Soal</h3>
+      <p class="help">
+        Jawaban Anda sudah tersimpan. Tanpa password keluar, Anda tidak boleh
+        keluar dari mode pengerjaan.
+      </p>
+      <form method="post" action="{{ url_for('murid.tes_keluar') }}">
+        <input type="hidden" name="kelas" value="{{ kelas }}">
+        <div class="form-grid">
+          <div class="full">
+            <label>Password Keluar</label>
+            <input type="password" name="password_keluar" required autocomplete="off" autofocus>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Keluar dari Soal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+<script>
+  // Cegah navigasi balik tanpa password keluar
+  history.pushState(null, "", location.href);
+  window.addEventListener("popstate", function () {
+    history.pushState(null, "", location.href);
+  });
+</script>
+{% endblock %}

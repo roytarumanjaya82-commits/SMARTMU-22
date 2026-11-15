@@ -1,4 +1,4 @@
-﻿import { tampilan } from "./views.js?v=13";
+import { tampilan } from "./views.js?v=15";
 import {
   bandingKelas,
   buatDeskripsi,
@@ -40,7 +40,7 @@ import {
   terapkanKenaikan,
   tahunBerikutnya,
   uid,
-} from "./model.js?v=13";
+} from "./model.js?v=15";
 import {
   connectFolder,
   downloadFromDrive,
@@ -58,7 +58,7 @@ import {
   load,
   touch,
   uploadToDrive,
-} from "./store.js?v=13";
+} from "./store.js?v=15";
 
 const appEl = document.getElementById("app");
 const ui = {
@@ -185,6 +185,12 @@ function tulis(el) {
   if (el.dataset.raport) {
     const rec = ensureRaport(state, el.dataset.raport);
     deepSet(rec, el.dataset.field, nilai);
+    if (el.dataset.field === "catatanGuru") {
+      rec.kekuatan = "";
+      rec.pendampingan = "";
+      rec.rekomendasiOrangtua = "";
+      rec.tindakLanjut = "";
+    }
     touch();
     return "raport";
   }
@@ -430,7 +436,7 @@ async function prosesImporDef(file) {
   }
   if (!dfMatrix && !eMatrix && lembar[0]) {
     const headers = (lembar[0].matrix?.[0] || []).map((h) => String(h || "").toLowerCase()).join(" ");
-    if (/prinsip|pengalaman|kekuatan|tindak/.test(headers)) dfMatrix = lembar[0].matrix;
+    if (/prinsip|pengalaman|kekuatan|tindak|catatan guru/.test(headers)) dfMatrix = lembar[0].matrix;
     else if (/topik|jenis/.test(headers)) eMatrix = lembar[0].matrix;
   }
   const df = dfMatrix ? parseLembarDefDf(dfMatrix) : { rows: [], errors: [] };
@@ -702,7 +708,7 @@ async function jalankan(act, btn) {
     const n = isiCatatanGuruKosong(state, btn.dataset.siswa);
     touch();
     renderKeep();
-    toast(n ? `${n} kolom kosong terisi. Silakan tinjau kembali.` : "Tidak ada kolom kosong yang bisa disusun. Isi predikat bidang atau catat layanan terlebih dahulu.");
+    toast(n ? "Catatan Guru BK terisi. Silakan tinjau kembali." : "Catatan Guru BK belum bisa disusun. Isi predikat bidang atau catat layanan terlebih dahulu.");
     return;
   }
   if (act === "cetak-siswa") {

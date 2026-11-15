@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Kriteria Penilaian{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Kriteria Penilaian Wawancara</h1>
+    <p class="page-sub">Total bobot aktif tiap kelas harus tepat <strong>100</strong>. Skor guru diisi 0–bobot per aspek.</p>
+
+    <div class="panel">
+      <h3>Total Bobot per Kelas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kelas</th><th>Total Bobot Aktif</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{{ total_bobot_per_kelas.get(value, 0) }} / 100</td>
+              <td>
+                {% if total_bobot_per_kelas.get(value, 0) == 100 %}
+                  <span class="badge badge-success">Siap</span>
+                {% else %}
+                  <span class="badge badge-warning">Perlu disesuaikan</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Filter Kelas</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Tambah Kriteria</h3>
+        <form method="post">
+          <div class="form-grid">
+            <div class="full">
+              <label>Kelas</label>
+              <select name="kelas_tujuan" required>
+                {% for value, label in kelas_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="full"><label>Nama Kriteria</label><input name="nama_kriteria" required></div>
+            <div class="full"><label>Deskripsi</label><textarea name="deskripsi"></textarea></div>
+            <div class="full"><label>Bobot (poin, bagian dari 100)</label><input type="number" name="bobot" value="20" min="1" max="100" required></div>
+          </div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Tambah</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Daftar Kriteria</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kelas</th><th>Kriteria</th><th>Bobot</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for k in items %}
+              <tr>
+                <td>{{ k.kelas_label }}</td>
+                <td>{{ k.nama_kriteria }}<br><small>{{ k.deskripsi or '' }}</small></td>
+                <td>{{ k.bobot }}</td>
+                <td>{% if k.is_active %}<span class="badge badge-success">Aktif</span>{% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}</td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.kriteria_toggle', kriteria_id=k.id) }}">
+                    <button class="btn btn-sm btn-secondary" type="submit">Toggle</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5">Belum ada kriteria.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

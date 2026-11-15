@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Tes {{ kelas_label }}{% endblock %}
+{% block body_class %}tes-lock-mode{% endblock %}
+{% block content %}
+<section class="page tes-lock-page">
+  <div class="container narrow">
+    <div class="tes-lock-banner">
+      <strong>Mode pengerjaan terkunci · {{ kelas_label }}</strong>
+      <span>Jangan keluar dari layar. Jawaban tersimpan otomatis ({{ terjawab }}/{{ soals|length }}).</span>
+    </div>
+
+    <h1 class="page-title">Tes Tertulis · {{ kelas_label }}</h1>
+    <p class="page-sub">
+      Jawab seluruh soal. Setelah submit, masukkan <strong>password keluar</strong> dari pengawas.
+    </p>
+
+    {% if not soals %}
+      <div class="panel"><p>Soal untuk kelas {{ kelas_label }} belum tersedia.</p></div>
+    {% else %}
+      <form method="post" id="formTesKelas" data-kelas="{{ kelas }}"
+            data-autosave-url="{{ url_for('murid.tes_autosave', kelas=kelas) }}"
+            data-heartbeat-url="{{ url_for('murid.tes_heartbeat', kelas=kelas) }}">
+        {% for s in soals %}
+        <div class="question">
+          <h4 class="arabic-field" dir="auto">{{ loop.index }}. {{ s.pertanyaan }}</h4>
+          {% if s.gambar %}
+          <div class="soal-gambar-preview">
+            <img src="{{ url_for('static', filename=s.gambar) }}" alt="Gambar soal {{ loop.index }}">
+          </div>
+          {% endif %}
+          <div class="options">
+            {% set jawab = sudah.get(s.id).jawaban if s.id in sudah else '' %}
+            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="A" {% if jawab=='A' %}checked{% endif %} {% if locked %}disabled{% endif %} required> A. {{ s.opsi_a }}</label>
+            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="B" {% if jawab=='B' %}checked{% endif %} {% if locked %}disabled{% endif %}> B. {{ s.opsi_b }}</label>
+            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="C" {% if jawab=='C' %}checked{% endif %} {% if locked %}disabled{% endif %}> C. {{ s.opsi_c }}</label>
+            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="D" {% if jawab=='D' %}checked{% endif %} {% if locked %}disabled{% endif %}> D. {{ s.opsi_d }}</label>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not locked %}
+        <div class="actions">
+          <button class="btn btn-primary" type="submit"
+                  onclick="return confirm('Kirim jawaban {{ kelas_label }}? Pastikan semua sudah dijawab.');">
+            Submit Jawaban {{ kelas_label }}
+          </button>
+        </div>
+        {% else %}
+        <div class="panel"><p>Tes terkunci karena kelas sudah ditetapkan.</p></div>
+        {% endif %}
+      </form>
+    {% endif %}
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/tes_lock.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Edit Soal {{ kelas_label }}{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container narrow">
+    <h1 class="page-title">Edit Soal · {{ kelas_label }}</h1>
+    <p class="page-sub">Kelas soal terkunci ke tugas Anda. Ubah teks/gambar saja.</p>
+
+    <form class="panel" method="post" enctype="multipart/form-data" id="formTambahSoal">
+      <input type="hidden" name="gambar_paste" id="gambarPaste">
+      <div class="form-grid">
+        <div class="full">
+          <label>Kelas Tujuan</label>
+          <input value="{{ kelas_label }}" disabled>
+        </div>
+        <div class="full">
+          <label>Pertanyaan</label>
+          <textarea name="pertanyaan" class="arabic-field" dir="auto">{{ soal.pertanyaan }}</textarea>
+        </div>
+        <div class="full">
+          <label>Gambar soal</label>
+          {% if soal.gambar %}
+          <div class="soal-gambar-preview">
+            <img src="{{ url_for('static', filename=soal.gambar) }}" alt="Gambar soal">
+          </div>
+          <label style="display:flex;gap:0.4rem;align-items:center;margin-top:0.5rem;">
+            <input type="checkbox" name="hapus_gambar" value="1"> Hapus gambar saat ini
+          </label>
+          {% endif %}
+          <input type="file" name="gambar_file" accept="image/png,image/jpeg,image/gif,image/webp" style="margin-top:0.6rem;">
+          <div class="help">Atau tempel screenshot (Ctrl+V).</div>
+          <div class="paste-zone" id="pasteZone" tabindex="0">Tempel gambar di sini (Ctrl+V)</div>
+          <div id="pastePreview" class="soal-gambar-preview" hidden></div>
+        </div>
+        <div><label>Opsi A</label><input name="opsi_a" class="arabic-field" dir="auto" value="{{ soal.opsi_a }}" required></div>
+        <div><label>Opsi B</label><input name="opsi_b" class="arabic-field" dir="auto" value="{{ soal.opsi_b }}" required></div>
+        <div><label>Opsi C</label><input name="opsi_c" class="arabic-field" dir="auto" value="{{ soal.opsi_c }}" required></div>
+        <div><label>Opsi D</label><input name="opsi_d" class="arabic-field" dir="auto" value="{{ soal.opsi_d }}" required></div>
+        <div>
+          <label>Jawaban Benar</label>
+          <select name="jawaban_benar">
+            {% for j in ['A','B','C','D'] %}
+              <option value="{{ j }}" {% if soal.jawaban_benar==j %}selected{% endif %}>{{ j }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div><label>Bobot</label><input type="number" name="bobot" value="{{ soal.bobot }}" min="1"></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Simpan Perubahan</button>
+        <a class="btn btn-secondary" href="{{ url_for('guru_soal.soal_list') }}">Kembali</a>
+      </div>
+    </form>
+  </div>
+</section>
+<script src="{{ url_for('static', filename='js/soal_gambar.js') }}"></script>
+{% endblock %}

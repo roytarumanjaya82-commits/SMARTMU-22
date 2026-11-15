@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Laporan Individu · {{ murid.user.nama_lengkap }}{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div style="display:flex;gap:0.85rem;align-items:center;">
+        <img src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo SMARTMU 22" style="width:64px;height:64px;object-fit:contain;">
+        <div>
+          <h1 class="page-title">Laporan Individu Tes Penempatan</h1>
+          <p class="page-sub">
+            {{ murid.user.nama_lengkap }} · NISN {{ murid.nisn }} ·
+            {{ label_gelombang(murid.gelombang) }}
+          </p>
+        </div>
+      </div>
+      <div class="actions no-print">
+        <a class="btn btn-secondary" href="{{ url_for('admin.hasil_gabungan') }}">Hasil Gabungan</a>
+        <a class="btn btn-primary" href="{{ url_for('admin.murid_detail', murid_id=murid.id) }}">Tetapkan Kelas</a>
+        <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak</button>
+      </div>
+    </div>
+
+    <div class="score-box" style="margin-bottom:1.2rem;">
+      <div class="score-item">
+        <span>Rata-rata Tes ({{ bobot_tes }}%)</span>
+        <strong>{{ murid.skor_tes_tertulis() if murid.skor_tes_tertulis() is not none else '-' }}</strong>
+      </div>
+      <div class="score-item">
+        <span>Wawancara Tertinggi ({{ bobot_wawancara }}%)</span>
+        <strong>{{ murid.nilai_rekomendasi_wawancara() if murid.nilai_rekomendasi_wawancara() is not none else '-' }}</strong>
+      </div>
+      <div class="score-item">
+        <span>Psikotes ({{ bobot_psikotes }}%)</span>
+        <strong>{{ murid.skor_psikotes() if murid.skor_psikotes() is not none else '-' }}</strong>
+      </div>
+      <div class="score-item">
+        <span>Skor Gabungan / Rekomendasi</span>
+        <strong style="font-size:1.05rem;">
+          {{ murid.nilai_rekomendasi() if murid.nilai_rekomendasi() is not none else '-' }}
+          · {{ murid.rekomendasi_kelas_label }}
+        </strong>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>1. Hasil Tes Tertulis ({{ murid.progress_tes_label }})</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kelas Soal</th><th>Benar/Soal</th><th>Nilai</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            {% set ringkas = murid.ringkas_tes_tertulis(value) %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{% if ringkas.selesai %}{{ ringkas.benar }}/{{ ringkas.total }}{% else %}—{% endif %}</td>
+              <td>{% if ringkas.skor is not none %}<strong>{{ ringkas.skor }}</strong>{% else %}—{% endif %}</td>
+              <td>
+                {% if ringkas.selesai %}<span class="badge badge-success">Selesai</span>
+                {% else %}<span class="badge badge-warning">Belum</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="help">Rata-rata seluruh kelas yang sudah dikerjakan: <strong>{{ murid.skor_tes_tertulis() if murid.skor_tes_tertulis() is not none else '—' }}</strong></p>
+    </div>
+
+    <div class="panel">
+      <h3>2. Hasil Wawancara ({{ murid.progress_wawancara_label }})</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>No</th><th>Sesi</th><th>Nilai</th><th>Guru</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            {% set p = (murid.penilaian|selectattr('kelas_tujuan','equalto',value)|list|sort(attribute='nilai_akhir', reverse=True)|first) if murid.penilaian else none %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ label }}</td>
+              <td>{% if value in nilai_per_kelas %}<strong>{{ nilai_per_kelas[value] }}</strong>{% else %}Belum{% endif %}</td>
+              <td>{{ p.guru.nama_lengkap if p else '-' }}</td>
+              <td>
+                {% if murid.rekomendasi_dari_wawancara() == value %}
+                  <span class="badge badge-success">Tertinggi wawancara</span>
+                {% elif value in nilai_per_kelas %}
+                  <span class="badge">Selesai</span>
+                {% else %}
+                  <span class="badge badge-warning">Belum</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="help">Rekomendasi wawancara saja: <strong>{{ murid.rekomendasi_wawancara_label }}</strong></p>
+    </div>
+
+    <div class="panel">
+      <h3>3. Hasil Psikotes</h3>
+      {% if murid.skor_psikotes() is not none %}
+      <p>Nilai psikotes: <strong>{{ murid.skor_psikotes() }}</strong>/100
+        {% if murid.catatan_psikotes %} · {{ murid.catatan_psikotes }}{% endif %}
+      </p>
+      {% else %}
+      <p>Belum diisi. Isi di menu <a href="{{ url_for('admin.psikotes_list') }}">Skor Psikotes</a>.</p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h3>4. Hasil Gabungan &amp; Rekomendasi</h3>
+      <p>
+        Bobot dihitung <strong>per kelas</strong> (bisa berbeda). Default global:
+        Tes {{ bobot_tes }}% · Wawancara {{ bobot_wawancara }}% · Psikotes {{ bobot_psikotes }}%.
+        {% if murid.rekomendasi_kelas() %}
+          Direkomendasikan ke <strong>{{ murid.rekomendasi_kelas_label }}</strong>
+          dengan skor gabungan <strong>{{ murid.nilai_rekomendasi() }}</strong>.
+        {% else %}
+          Belum bisa dihitung (butuh minimal satu nilai wawancara).
+        {% endif %}
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Kelas</th>
+              <th>Bobot T/W/P</th>
+              <th>Tes</th>
+              <th>Wawancara</th>
+              <th>Psikotes</th>
+              <th>Skor Gabungan</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            {% set b = bobot_kelas.get(value, (bobot_tes, bobot_wawancara, bobot_psikotes)) %}
+            <tr>
+              <td>{{ label }}</td>
+              <td class="help">{{ b[0] }}/{{ b[1] }}/{{ b[2] }}</td>
+              <td>{{ nilai_tes[value] if value in nilai_tes else '—' }}</td>
+              <td>{{ nilai_per_kelas[value] if value in nilai_per_kelas else '—' }}</td>
+              <td>{{ murid.skor_psikotes() if murid.skor_psikotes() is not none else '—' }}</td>
+              <td>
+                {% if value in nilai_gabungan %}
+                  <strong>{{ nilai_gabungan[value] }}</strong>
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                {% if murid.rekomendasi_kelas() == value %}
+                  <span class="badge badge-success">Direkomendasikan</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Kelas ditetapkan:</strong> {{ murid.kelas_akhir_label }}</p>
+      {% if murid.catatan_admin %}<p><strong>Catatan:</strong> {{ murid.catatan_admin }}</p>{% endif %}
+    </div>
+
+    {% for value, label in kelas_choices %}
+    {% set daftar = murid.penilaian|selectattr('kelas_tujuan','equalto',value)|list|sort(attribute='nilai_akhir', reverse=True) %}
+    {% if daftar %}
+    {% set p = daftar[0] %}
+    <div class="panel">
+      <h3>Rincian Wawancara {{ label }} — {{ p.nilai_akhir }}/100</h3>
+      {% if p.catatan %}<p class="help">Catatan guru: {{ p.catatan }}</p>{% endif %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>No</th><th>Pertanyaan</th><th>Jawaban / Catatan</th><th>Skor</th></tr>
+          </thead>
+          <tbody>
+            {% for j in p.jawaban_soal|sort(attribute='soal.urutan') %}
+            <tr>
+              <td>{{ j.soal.urutan }}</td>
+              <td>{{ j.soal.pertanyaan }}</td>
+              <td>{{ j.jawaban_murid or '-' }}</td>
+              <td><strong>{{ j.skor }}</strong>/{{ j.soal.bobot }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Tidak ada rincian soal.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

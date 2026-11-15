@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Tambah Murid{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Tambah Murid</h1>
+        <p class="page-sub">
+          Tahun Ajaran <strong>{{ tahun_ajaran }}</strong>.
+          Username otomatis dari nama · password <code>{{ default_password_murid }}</code>.
+          Akun orang tua ikut dibuat · password <code>{{ default_password_ortu }}</code>.
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('admin.murid_list', gelombang=gelombang) }}">Kembali ke Daftar</a>
+      </div>
+    </div>
+
+    <form class="panel" method="post">
+      <h3 style="margin-top:0;">Data Wajib</h3>
+      <div class="form-grid">
+        <div>
+          <label>Nama Lengkap</label>
+          <input name="nama_lengkap" required placeholder="Nama murid">
+        </div>
+        <div>
+          <label>Jenis Kelamin</label>
+          <select name="jenis_kelamin" required>
+            <option value="">Pilih</option>
+            <option value="L">Laki-laki</option>
+            <option value="P">Perempuan</option>
+          </select>
+        </div>
+        <div>
+          <label>Asal Sekolah</label>
+          <input name="asal_sekolah" required placeholder="Nama SD/MI asal">
+        </div>
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" required>
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>NISN <span class="help">(opsional — otomatis jika kosong)</span></label>
+          <input name="nisn" placeholder="Contoh: 0123456789">
+        </div>
+        <div>
+          <label>Nomor Urut <span class="help">(opsional)</span></label>
+          <input name="nomor_urut" placeholder="Contoh: 15">
+        </div>
+      </div>
+
+      <h3>Pilihan Kelas &amp; Orang Tua</h3>
+      <div class="form-grid">
+        <div>
+          <label>Pilihan Kelas 1</label>
+          <select name="pilihan_kelas_1" required>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if value=='reguler' %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Pilihan Kelas 2 <span class="help">(opsional)</span></label>
+          <select name="pilihan_kelas_2">
+            <option value="">—</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Nama Orang Tua / Wali</label>
+          <input name="nama_ortu" placeholder="Opsional">
+        </div>
+        <div>
+          <label>No. HP Orang Tua</label>
+          <input name="no_hp_ortu" placeholder="Opsional">
+        </div>
+        <div class="full">
+          <label>Alamat Murid</label>
+          <textarea name="alamat" rows="2" placeholder="Opsional"></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">Simpan Murid</button>
+        <a class="btn btn-secondary" href="{{ url_for('admin.murid_list', gelombang=gelombang) }}">Batal</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

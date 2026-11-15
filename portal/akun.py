@@ -29,6 +29,7 @@ PORTAL = (
     ("bk", "Rapor BK"),
     ("inventaris", "Inventaris"),
     ("koding", "Kelas Koding"),
+    ("tpk", "TPK"),
 )
 NAMA_PORTAL = dict(PORTAL)
 _tabel_siap = False

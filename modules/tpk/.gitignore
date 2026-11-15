@@ -1,0 +1,38 @@
+# Secrets & local env
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local runtime / uploads / backups
+instance/
+*.db
+*.sqlite3
+database/*.bak
+database/*_dump.sql
+database/*_backup.sql
+app/static/uploads/
+*.log
+
+# Temp test artifacts
+_tmp_*.py
+blanko_murid_tpk_smartmu22.xlsx

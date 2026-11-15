@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Laporan Hasil Wawancara Saya{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div style="display:flex;gap:0.85rem;align-items:center;">
+        <img src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo SMARTMU 22" style="width:64px;height:64px;object-fit:contain;">
+        <div>
+          <h1 class="page-title">Laporan Hasil Penilaian Wawancara</h1>
+          <p class="page-sub">{{ current_user.nama_lengkap }} · Progress {{ murid.progress_wawancara_label }}</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak Laporan</button>
+      </div>
+    </div>
+
+    <div class="score-box" style="margin-bottom:1.2rem;">
+      <div class="score-item"><span>Nilai Tertinggi</span><strong>{{ murid.nilai_rekomendasi() if murid.nilai_rekomendasi() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Rekomendasi Kelas</span><strong style="font-size:1.1rem;">{{ murid.rekomendasi_kelas_label }}</strong></div>
+      <div class="score-item"><span>Kelas Ditetapkan</span><strong style="font-size:1.1rem;">{{ murid.kelas_akhir_label }}</strong></div>
+    </div>
+
+    <div class="panel">
+      <h3>Kesimpulan</h3>
+      {% if murid.rekomendasi_kelas() %}
+      <p>
+        Anda direkomendasikan ke kelas <strong>{{ murid.rekomendasi_kelas_label }}</strong>
+        karena nilai wawancara tertinggi Anda ada di sesi tersebut
+        (<strong>{{ murid.nilai_rekomendasi() }}</strong>/100).
+        {% if not murid.wawancara_lengkap() %}
+          Laporan masih sementara hingga seluruh 5 sesi wawancara selesai.
+        {% endif %}
+      </p>
+      {% else %}
+      <p>Belum ada nilai wawancara. Ikuti seluruh sesi: Olimpiade, Tahfidz, Multimedia, Internasional, dan Reguler.</p>
+      {% endif %}
+      {% if murid.catatan_admin %}<p>Catatan admin: {{ murid.catatan_admin }}</p>{% endif %}
+    </div>
+
+    <div class="panel">
+      <h3>Rekap Seluruh Sesi Wawancara</h3>
+      {% set nilai = murid.nilai_wawancara_per_kelas() %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Sesi</th><th>Nilai</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for value, label in [
+              ('olimpiade','Olimpiade'),('tahfidz','Tahfidz'),('multimedia','Multimedia'),
+              ('internasional','Internasional'),('reguler','Reguler')
+            ] %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{% if value in nilai %}<strong>{{ nilai[value] }}</strong>{% else %}Belum dinilai{% endif %}</td>
+              <td>
+                {% if murid.rekomendasi_kelas() == value %}
+                  <span class="badge badge-success">Direkomendasikan</span>
+                {% elif value in nilai %}
+                  <span class="badge">Selesai</span>
+                {% else %}
+                  <span class="badge badge-warning">Belum</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% for value, label in [
+      ('olimpiade','Olimpiade'),('tahfidz','Tahfidz'),('multimedia','Multimedia'),
+      ('internasional','Internasional'),('reguler','Reguler')
+    ] %}
+    {% set daftar = murid.penilaian|selectattr('kelas_tujuan','equalto',value)|list|sort(attribute='nilai_akhir', reverse=True) %}
+    {% if daftar %}
+    {% set p = daftar[0] %}
+    <div class="panel">
+      <h3>Rincian Sesi {{ label }} — {{ p.nilai_akhir }}/100</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pertanyaan</th><th>Jawaban / Catatan</th><th>Skor</th></tr></thead>
+          <tbody>
+            {% for j in p.jawaban_soal|sort(attribute='soal.urutan') %}
+            <tr>
+              <td>{{ j.soal.pertanyaan }}</td>
+              <td>{{ j.jawaban_murid or '-' }}</td>
+              <td>{{ j.skor }}/{{ j.soal.bobot }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3">Tidak ada rincian soal.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

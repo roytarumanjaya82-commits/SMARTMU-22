@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Murid{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Halo, {{ current_user.nama_lengkap }}</h1>
+    <p class="page-sub">
+      Status: <span class="badge">{{ murid.status_label }}</span> ·
+      Tes tertulis: <span class="badge">{{ murid.progress_tes_label }}</span> ·
+      Wawancara: <span class="badge">{{ murid.progress_wawancara_label }}</span>
+    </p>
+
+    <div class="score-box" style="margin-bottom:1.2rem;">
+      <div class="score-item"><span>Rata-rata Tes</span><strong>{{ murid.skor_tes_tertulis() if murid.skor_tes_tertulis() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Skor Gabungan</span><strong>{{ murid.nilai_rekomendasi() if murid.nilai_rekomendasi() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Rekomendasi</span><strong style="font-size:1.05rem;">{{ murid.rekomendasi_kelas_label }}</strong></div>
+      <div class="score-item"><span>Kelas Ditetapkan</span><strong style="font-size:1.05rem;">{{ murid.kelas_akhir_label }}</strong></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Alur Seleksi</h3>
+        <ol>
+          <li>Lengkapi profil jika masih kosong.</li>
+          <li><strong>Tes tertulis</strong> — kerjakan soal seluruh kelas (5 sesi), nilai masuk per kelas.</li>
+          <li><strong>Wawancara</strong> — ikuti 5 sesi: Olimpiade, Tahfidz, Multimedia, Internasional, Reguler.</li>
+          <li><strong>Hasil gabungan</strong> — rekomendasi dari tes {{ bobot_tes }}% + wawancara {{ bobot_wawancara }}% + psikotes {{ bobot_psikotes }}%.</li>
+        </ol>
+        <div class="actions">
+          <a class="btn btn-primary" href="{{ url_for('murid.tes') }}">Kerjakan Tes Tertulis</a>
+          <a class="btn btn-secondary" href="{{ url_for('murid.hasil_tes') }}">Hasil Tes</a>
+          <a class="btn btn-secondary" href="{{ url_for('murid.hasil_wawancara') }}">Hasil Wawancara</a>
+          <a class="btn btn-primary" href="{{ url_for('murid.hasil_gabungan') }}">Hasil Gabungan</a>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Progress 5 Sesi Wawancara</h3>
+        {% set nilai = murid.nilai_wawancara_per_kelas() %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Sesi</th><th>Nilai</th></tr></thead>
+            <tbody>
+              {% for value, label in [
+                ('olimpiade','Olimpiade'),('tahfidz','Tahfidz'),('multimedia','Multimedia'),
+                ('internasional','Internasional'),('reguler','Reguler')
+              ] %}
+              <tr>
+                <td>{{ label }}</td>
+                <td>{% if value in nilai %}{{ nilai[value] }}{% else %}<span class="badge badge-warning">Belum</span>{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

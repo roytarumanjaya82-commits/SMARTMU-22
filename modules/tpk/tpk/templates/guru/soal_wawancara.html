@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Sesi Wawancara {{ kelas_label }}{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Sesi Wawancara · {{ kelas_label }}</h1>
+    <p class="page-sub">
+      Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> · {{ label_gelombang(gelombang) }}.
+      Anda mengisi nilai <strong>sesi {{ kelas_label }}</strong> untuk murid gelombang ini.
+      Setiap murid wajib melalui seluruh {{ total_sesi }} sesi wawancara.
+    </p>
+
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Pilih Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Total Murid</div><div class="value">{{ calon|length }}</div></div>
+      <div class="stat"><div class="label">Sudah Dinilai ({{ kelas_label }})</div><div class="value">{{ sudah }}</div></div>
+      <div class="stat"><div class="label">Belum Dinilai</div><div class="value">{{ belum }}</div></div>
+      <div class="stat"><div class="label">Bobot Soal</div><div class="value">{{ total_bobot }}</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Daftar Penilaian Murid — Sesi {{ kelas_label }}</h3>
+      <p class="help">Masukkan nilai wawancara {{ kelas_label }} untuk setiap murid. Rekomendasi kelas akhir dihitung otomatis dari nilai tertinggi seluruh sesi.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama</th>
+              <th>NISN</th>
+              <th>Nilai Sesi {{ kelas_label }}</th>
+              <th>Progress 5 Sesi</th>
+              <th>Rekomendasi Saat Ini</th>
+              <th>Status Sesi Ini</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in calon %}
+            {% set p = penilaian_map.get(m.id) %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ m.user.nama_lengkap }}</td>
+              <td>{{ m.nisn }}</td>
+              <td>{% if p %}<strong>{{ p.nilai_akhir }}</strong>/100{% else %}-{% endif %}</td>
+              <td>
+                <span class="badge {% if m.wawancara_lengkap() %}badge-success{% else %}badge-warning{% endif %}">
+                  {{ m.progress_wawancara_label }}
+                </span>
+              </td>
+              <td>{{ m.rekomendasi_kelas_label }}</td>
+              <td>
+                {% if p %}
+                  <span class="badge badge-success">Sudah dinilai</span>
+                {% else %}
+                  <span class="badge badge-warning">Belum</span>
+                {% endif %}
+              </td>
+              <td>
+                <a class="btn btn-sm btn-primary" href="{{ url_for('guru.nilai_murid', murid_id=m.id) }}">
+                  {% if p %}Edit Nilai{% else %}Input Nilai{% endif %}
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8">Belum ada murid terdaftar.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Soal Wawancara Sesi {{ kelas_label }}</h3>
+      {% for s in items %}
+      <div class="question">
+        <h4>{{ s.urutan }}. {{ s.pertanyaan }}</h4>
+        <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+          {% if s.aspek %}<span class="badge">{{ s.aspek }}</span>{% endif %}
+          <span class="badge badge-info">Bobot {{ s.bobot }}</span>
+        </div>
+        {% if s.panduan %}<div class="help" style="margin-top:0.4rem;">Panduan: {{ s.panduan }}</div>{% endif %}
+      </div>
+      {% else %}
+      <p>Belum ada soal wawancara aktif. Hubungi admin.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

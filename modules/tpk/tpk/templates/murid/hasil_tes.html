@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Hasil Tes Tertulis{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Hasil Tes Tertulis per Kelas</h1>
+    <p class="page-sub">
+      {{ current_user.nama_lengkap }} · Progress {{ murid.progress_tes_label }} ·
+      Rata-rata: <strong>{{ ringkas_tes.skor if nilai_tes else '-' }}</strong>
+    </p>
+
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr><th>Kelas Soal</th><th>Benar/Soal</th><th>Nilai</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for value, label in kelas_choices %}
+          {% set ringkas = murid.ringkas_tes_tertulis(value) %}
+          <tr>
+            <td>{{ label }}</td>
+            <td>{% if ringkas.selesai %}{{ ringkas.benar }}/{{ ringkas.total }}{% else %}—{% endif %}</td>
+            <td>{% if ringkas.skor is not none %}<strong>{{ ringkas.skor }}</strong>{% else %}—{% endif %}</td>
+            <td>
+              {% if ringkas.selesai %}
+                <span class="badge badge-success">Selesai</span>
+              {% else %}
+                <span class="badge badge-warning">Belum</span>
+              {% endif %}
+            </td>
+            <td>
+              <a class="btn btn-sm btn-secondary" href="{{ url_for('murid.tes_kelas', kelas=value) }}">Kerjakan</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ url_for('murid.tes') }}">Daftar Tes</a>
+      {% if tampilkan_kisi %}
+      <a class="btn btn-secondary" href="{{ url_for('murid.kisi_kisi') }}">Kisi-kisi Soal</a>
+      {% endif %}
+      <a class="btn btn-secondary" href="{{ url_for('murid.hasil_wawancara') }}">Hasil Wawancara</a>
+      <a class="btn btn-secondary" href="{{ url_for('murid.hasil_gabungan') }}">Hasil Gabungan</a>
+      <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak</button>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Dashboard Admin{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Dashboard Admin</h1>
+    <p class="page-sub">
+      Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> ·
+      {{ label_gelombang(gelombang) }}
+    </p>
+
+    <form class="panel" method="get" style="margin-bottom:1rem;">
+      <div class="form-grid">
+        <div>
+          <label>Filter Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Murid Gelombang Ini</div><div class="value">{{ total_murid }}</div></div>
+      <div class="stat"><div class="label">Guru Penguji</div><div class="value">{{ total_guru }}</div></div>
+      <div class="stat"><div class="label">Soal Aktif</div><div class="value">{{ total_soal }}</div></div>
+      <div class="stat"><div class="label">Sudah Dinilai</div><div class="value">{{ sudah_dinilai }}</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Jumlah Murid per Gelombang ({{ tahun_ajaran }})</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Gelombang</th><th>Jumlah</th></tr></thead>
+            <tbody>
+              {% for g, jumlah in per_gelombang %}
+              <tr>
+                <td><a href="{{ url_for('admin.dashboard', gelombang=g) }}">{{ label_gelombang(g) }}</a></td>
+                <td>{{ jumlah }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="2">Belum ada data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Peminat per Kelas · {{ label_gelombang(gelombang) }}</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kelas</th><th>Jumlah</th></tr></thead>
+            <tbody>
+              {% for kelas, jumlah in per_kelas %}
+              <tr>
+                <td>{{ kelas_map.get(kelas, kelas) }}</td>
+                <td>{{ jumlah }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="2">Belum ada data.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Pendaftar Terbaru · {{ label_gelombang(gelombang) }}</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nama</th><th>Gelombang</th><th>Pilihan</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for m in terbaru %}
+            <tr>
+              <td><a href="{{ url_for('admin.murid_detail', murid_id=m.id) }}">{{ m.user.nama_lengkap }}</a></td>
+              <td>{{ label_gelombang(m.gelombang) }}</td>
+              <td>{{ m.pilihan1_label }}</td>
+              <td><span class="badge">{{ m.status_label }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Belum ada pendaftar.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}Data Murid{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <h1 class="page-title">Data Murid Peserta</h1>
+        <p class="page-sub">
+          Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> ·
+          {{ label_gelombang(gelombang) }} ·
+          Total: <strong>{{ items|length }}</strong> murid
+        </p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-primary" href="{{ url_for('admin.murid_tambah', gelombang=gelombang if gelombang != gelombang_kosong else daftar_gelombang[0] if daftar_gelombang else '1') }}">Tambah Murid</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.unduh_blanko_murid') }}">Unduh Blanko</a>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Upload Data Murid</h3>
+      <p class="help" style="margin-top:0;">
+        Kolom wajib: <strong>Nomor, Nama, Jenis Kelamin, Asal Sekolah, Gelombang</strong>.
+        Kolom lain (NISN, TTL, alamat, ortu/wali, minat kelas) boleh dikosongkan.
+        Username otomatis dari nama, password: <strong>murid123</strong>.
+        Akun orang tua ikut dibuat: <code>ortu.namaanak</code> / <strong>ortu123</strong>.
+        Upload gelombang baru <strong>tidak menghapus</strong> gelombang yang sudah ada.
+      </p>
+      <form method="post" action="{{ url_for('admin.upload_blanko_murid') }}" enctype="multipart/form-data" style="margin-top:0.9rem;">
+        <div class="form-grid">
+          <div class="full">
+            <label>File data murid (.xlsx / .csv)</label>
+            <input type="file" name="blanko_file" accept=".xlsx,.csv" required>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Upload Data</button>
+          <a class="btn btn-secondary" href="{{ url_for('admin.unduh_blanko_murid') }}">Unduh Contoh (opsional)</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h3>Akun Login Orang Tua</h3>
+      <p class="help" style="margin-top:0;">
+        Buat / perbarui akun orang tua dari data murid gelombang ini agar orang tua bisa melihat laporan hasil anak.
+        Username: <code>ortu.namaanak</code> · Password awal: <code>ortu123</code> (bisa diganti sendiri oleh orang tua).
+      </p>
+      <form method="post" action="{{ url_for('admin.sinkron_akun_ortu') }}" style="margin-top:0.9rem;">
+        <input type="hidden" name="gelombang" value="{{ gelombang }}">
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Sinkronkan Akun Orang Tua ({{ label_gelombang(gelombang) }})</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h3>Hapus Murid per Gelombang</h3>
+      <p class="help" style="margin-top:0;">
+        Menghapus semua murid pada gelombang yang dipilih untuk tahun ajaran
+        <strong>{{ tahun_ajaran }}</strong>, termasuk akun login murid &amp; orang tua,
+        jawaban tes, sesi tes, dan penilaian wawancara.
+        Slot gelombang tetap ada dan bisa diisi ulang.
+      </p>
+      {% if jumlah_per_gelombang %}
+      <p class="help">
+        Ringkasan peserta:
+        {% for g, n in jumlah_per_gelombang.items() %}
+          <strong>{{ label_gelombang(g) }}</strong>: {{ n }}{% if not loop.last %} · {% endif %}
+        {% endfor %}
+      </p>
+      {% endif %}
+      <form method="post" action="{{ url_for('admin.hapus_murid_gelombang') }}" style="margin-top:0.9rem;"
+            id="form-hapus-gelombang"
+            onsubmit="return confirmHapusGelombang(this);">
+        <div class="form-grid">
+          <div>
+            <label>Gelombang</label>
+            <select name="gelombang" id="hapus-gelombang-select" required>
+              {% for g in daftar_gelombang %}
+                <option value="{{ g }}"
+                        data-jumlah="{{ jumlah_per_gelombang.get(g, 0) }}"
+                        data-konfirmasi="HAPUS GELOMBANG {{ g }}"
+                        {% if gelombang==g %}selected{% endif %}>
+                  {{ label_gelombang(g) }} ({{ jumlah_per_gelombang.get(g, 0) }} murid)
+                </option>
+              {% endfor %}
+              {% if jumlah_per_gelombang.get(gelombang_kosong) %}
+              <option value="{{ gelombang_kosong }}"
+                      data-jumlah="{{ jumlah_per_gelombang.get(gelombang_kosong, 0) }}"
+                      data-konfirmasi="HAPUS TANPA GELOMBANG"
+                      {% if gelombang==gelombang_kosong %}selected{% endif %}>
+                Tanpa gelombang ({{ jumlah_per_gelombang.get(gelombang_kosong, 0) }} murid)
+              </option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="full">
+            <label>Ketik konfirmasi</label>
+            <input name="konfirmasi" id="hapus-gelombang-konfirmasi" required autocomplete="off"
+                   placeholder="HAPUS GELOMBANG {{ gelombang if gelombang != gelombang_kosong else '…' }}">
+            <div class="help" id="hapus-gelombang-hint">
+              Ketik tepat: <code id="hapus-gelombang-kode">HAPUS GELOMBANG {{ gelombang if gelombang != gelombang_kosong else '1' }}</code>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-danger" type="submit">Hapus Seluruh Peserta Gelombang</button>
+        </div>
+      </form>
+    </div>
+
+    <form class="panel" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>
+                {{ label_gelombang(g) }} ({{ jumlah_per_gelombang.get(g, 0) }})
+              </option>
+            {% endfor %}
+            {% if jumlah_per_gelombang.get(gelombang_kosong) %}
+            <option value="{{ gelombang_kosong }}" {% if gelombang==gelombang_kosong %}selected{% endif %}>
+              Tanpa gelombang ({{ jumlah_per_gelombang.get(gelombang_kosong, 0) }})
+            </option>
+            {% endif %}
+          </select>
+        </div>
+        <div>
+          <label>Cari nama / NISN / username</label>
+          <input name="q" value="{{ q }}">
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status">
+            <option value="">Semua</option>
+            {% for s in ['terdaftar','tes_selesai','wawancara','dinilai','ditetapkan'] %}
+              <option value="{{ s }}" {% if status==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Pilihan Kelas 1</label>
+          <select name="kelas">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:flex;align-items:end;">
+          <button class="btn btn-primary" type="submit">Filter</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>NISN</th>
+            <th>Gelombang</th>
+            <th>Pilihan 1</th>
+            <th>Tes</th>
+            <th>Skor Gabungan</th>
+            <th>Rekomendasi</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in items %}
+          <tr>
+            <td>{{ m.user.nama_lengkap }}</td>
+            <td>{{ m.nisn }}</td>
+            <td>{{ label_gelombang(m.gelombang) if m.gelombang else 'Tanpa gelombang' }}</td>
+            <td>{{ m.pilihan1_label }}</td>
+            <td>{{ m.skor_tes_tertulis() if m.skor_tes_tertulis() is not none else '-' }}</td>
+            <td>{{ m.nilai_rekomendasi() if m.nilai_rekomendasi() is not none else '-' }}</td>
+            <td><span class="badge badge-success">{{ m.rekomendasi_kelas_label }}</span></td>
+            <td>
+              <span class="badge">{{ m.status_label }}</span>
+              {% if m.is_tes_susulan %}<span class="badge badge-warning">Susulan</span>{% endif %}
+            </td>
+            <td>
+              <a class="btn btn-sm btn-secondary" href="{{ url_for('admin.murid_detail', murid_id=m.id) }}">Detail</a>
+              <a class="btn btn-sm btn-primary" href="{{ url_for('admin.laporan_individu', murid_id=m.id) }}">Laporan</a>
+              <form method="post" action="{{ url_for('admin.hapus_murid', murid_id=m.id) }}" style="display:inline;"
+                    onsubmit="return confirm('Hapus murid {{ m.user.nama_lengkap }} (NISN {{ m.nisn }})?\nAkun login, jawaban tes, dan penilaian ikut terhapus.');">
+                <button class="btn btn-sm btn-danger" type="submit">Hapus</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="9">Tidak ada data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  var select = document.getElementById('hapus-gelombang-select');
+  var input = document.getElementById('hapus-gelombang-konfirmasi');
+  var kode = document.getElementById('hapus-gelombang-kode');
+  if (!select || !input || !kode) return;
+
+  function syncHint() {
+    var opt = select.options[select.selectedIndex];
+    var text = opt.getAttribute('data-konfirmasi') || '';
+    kode.textContent = text;
+    input.placeholder = text;
+  }
+  select.addEventListener('change', syncHint);
+  syncHint();
+
+  window.confirmHapusGelombang = function (form) {
+    var opt = select.options[select.selectedIndex];
+    var jumlah = opt.getAttribute('data-jumlah') || '0';
+    var label = opt.textContent.trim();
+    var expected = opt.getAttribute('data-konfirmasi') || '';
+    if ((input.value || '').trim().toUpperCase() !== expected.toUpperCase()) {
+      alert('Konfirmasi salah. Ketik tepat: ' + expected);
+      return false;
+    }
+    return confirm(
+      'Yakin hapus SELURUH ' + jumlah + ' peserta pada ' + label + '?\n' +
+      'Akun login, jawaban tes, dan penilaian ikut terhapus. Tidak bisa dibatalkan.'
+    );
+  };
+})();
+</script>
+{% endblock %}

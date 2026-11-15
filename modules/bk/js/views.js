@@ -1,4 +1,4 @@
-﻿import {
+import {
   BIDANG,
   INDIKATOR,
   JENIS_LAYANAN,
@@ -15,9 +15,10 @@
   raportTerisiPredikat,
   siswaDiKelas,
   statistik,
-} from "./model.js?v=13";
-import { htmlCetak } from "./print.js?v=13";
-import { getClientId as clientTersimpan, status } from "./store.js?v=13";
+  teksCatatanGuruBK,
+} from "./model.js?v=15";
+import { htmlCetak } from "./print.js?v=15";
+import { getClientId as clientTersimpan, status } from "./store.js?v=15";
 
 const NAV = [
   ["beranda", "Beranda"],
@@ -314,14 +315,10 @@ function raport(state, ui) {
       <section class="panel" style="margin-top:10px">
         <h3>Kehadiran layanan</h3>
         <div class="grid-3">${hadir}</div>
-        <h3>Catatan guru BK dan tindak lanjut</h3>
+        <h3>Catatan Guru BK</h3>
         <p class="kecil">Kolom yang masih kosong dapat disusun dari predikat bidang dan topik layanan. Tulisan yang sudah ada tidak diganti.</p>
         <div class="aksi"><button type="button" class="btn" data-act="isi-catatan-guru" data-siswa="${esc(siswa.id)}">Susun catatan guru BK yang masih kosong</button></div>
-        <label class="field"><span>Kekuatan</span><textarea data-raport="${esc(siswa.id)}" data-field="kekuatan">${esc(rec.kekuatan)}</textarea></label>
-        <label class="field"><span>Perlu pendampingan</span><textarea data-raport="${esc(siswa.id)}" data-field="pendampingan">${esc(rec.pendampingan)}</textarea></label>
-        <label class="field"><span>Catatan perkembangan untuk raport</span><textarea data-raport="${esc(siswa.id)}" data-field="catatanGuru">${esc(rec.catatanGuru)}</textarea></label>
-        <label class="field"><span>Rekomendasi bagi orang tua</span><textarea data-raport="${esc(siswa.id)}" data-field="rekomendasiOrangtua">${esc(rec.rekomendasiOrangtua)}</textarea></label>
-        <label class="field"><span>Tindak lanjut</span><textarea data-raport="${esc(siswa.id)}" data-field="tindakLanjut">${esc(rec.tindakLanjut)}</textarea></label>
+        <label class="field"><span>Catatan Guru BK</span><textarea data-raport="${esc(siswa.id)}" data-field="catatanGuru" rows="5">${esc(teksCatatanGuruBK(rec))}</textarea></label>
         <label class="field"><span>Catatan rahasia guru BK — tidak dicetak</span><textarea data-raport="${esc(siswa.id)}" data-field="catatanRahasia">${esc(rec.catatanRahasia)}</textarea></label>
       </section>
     </div>`;

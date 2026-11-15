@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Laporan Akhir Penempatan{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div class="print-header">
+      <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
+      <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+      <h3>Laporan Akhir Penempatan Kelas</h3>
+      <p>
+        Tahun Ajaran {{ tahun_ajaran }}
+        {% if gelombang %} · {{ label_gelombang(gelombang) }}{% else %} · Semua Gelombang{% endif %}
+      </p>
+    </div>
+
+    <div class="actions no-print" style="margin-bottom:1rem;flex-wrap:wrap;">
+      <form method="post" style="display:inline;">
+        <input type="hidden" name="aksi" value="generate">
+        <input type="hidden" name="gelombang" value="{{ gelombang }}">
+        <button class="btn btn-primary" type="submit"
+                onclick="return confirm('Buat ulang usulan penempatan berdasarkan skor gabungan + kuota? Murid yang sudah ACC tidak diubah.');">
+          Generate Usulan (Skor + Kuota)
+        </button>
+      </form>
+      <form method="post" style="display:inline;"
+            onsubmit="return confirm('ACC semua usulan yang masih menunggu?');">
+        <input type="hidden" name="aksi" value="acc_semua">
+        <input type="hidden" name="gelombang" value="{{ gelombang }}">
+        <button class="btn btn-secondary" type="submit">ACC Semua Usulan</button>
+      </form>
+      <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak Laporan</button>
+      <a class="btn btn-secondary" href="{{ url_for('admin.pengaturan') }}">Atur Kuota</a>
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            <option value="">Semua gelombang</option>
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="stats">
+      <div class="stat panel"><div class="label">Total murid</div><div class="value">{{ ringkas.total }}</div></div>
+      <div class="stat panel"><div class="label">Menunggu ACC</div><div class="value">{{ ringkas.usulan }}</div></div>
+      <div class="stat panel"><div class="label">Sudah ACC / ditetapkan</div><div class="value">{{ ringkas.acc }}</div></div>
+      <div class="stat panel"><div class="label">Belum ada usulan</div><div class="value">{{ ringkas.belum }}</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Kuota Kelas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Kelas</th><th>Kuota</th><th>Terisi (ACC)</th><th>Usulan menunggu</th><th>Sisa</th></tr>
+          </thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            {% set info = kuota_info.get(value, {}) %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{% if info.kuota %}{{ info.kuota }}{% else %}∞{% endif %}</td>
+              <td>{{ info.terisi }}</td>
+              <td>{{ info.usulan }}</td>
+              <td>
+                {% if info.sisa is none %}
+                  <span class="help">Tidak dibatasi</span>
+                {% elif info.sisa == 0 %}
+                  <span class="badge badge-danger">Penuh</span>
+                {% else %}
+                  <span class="badge badge-success">{{ info.sisa }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="table-wrap panel">
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>NISN</th>
+            <th>Gelombang</th>
+            <th>Rekomendasi skor</th>
+            <th>Usulan sistem</th>
+            <th>Skor</th>
+            <th>Kelas akhir</th>
+            <th>Status</th>
+            <th class="no-print">Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ m.user.nama_lengkap }}</td>
+            <td>{{ m.nisn }}</td>
+            <td>{{ label_gelombang(m.gelombang) }}</td>
+            <td>{{ m.rekomendasi_kelas_label }}</td>
+            <td>
+              {% if m.kelas_usulan %}
+                <strong>{{ m.kelas_usulan_label }}</strong>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ m.skor_penempatan if m.skor_penempatan is not none else '—' }}</td>
+            <td>{{ m.kelas_akhir_label }}</td>
+            <td>
+              {% if m.acc_penempatan or m.status == 'ditetapkan' %}
+                <span class="badge badge-success">ACC</span>
+              {% elif m.kelas_usulan %}
+                <span class="badge badge-warning">Menunggu ACC</span>
+              {% else %}
+                <span class="badge badge-danger">Belum usulan</span>
+              {% endif %}
+            </td>
+            <td class="no-print">
+              {% if m.kelas_usulan and not m.acc_penempatan and m.status != 'ditetapkan' %}
+              <form method="post" style="display:inline;">
+                <input type="hidden" name="aksi" value="acc">
+                <input type="hidden" name="murid_id" value="{{ m.id }}">
+                <input type="hidden" name="gelombang" value="{{ gelombang }}">
+                <label style="display:inline-flex;gap:0.25rem;align-items:center;font-size:0.8rem;">
+                  <input type="checkbox" name="paksa_kuota" value="1"> paksa
+                </label>
+                <button class="btn btn-sm btn-primary" type="submit">ACC</button>
+              </form>
+              {% endif %}
+
+              <details style="display:inline-block;margin-left:0.25rem;">
+                <summary class="btn btn-sm btn-secondary">Pindah</summary>
+                <form method="post" style="margin-top:0.4rem;min-width:180px;">
+                  <input type="hidden" name="aksi" value="pindah">
+                  <input type="hidden" name="murid_id" value="{{ m.id }}">
+                  <input type="hidden" name="gelombang" value="{{ gelombang }}">
+                  <select name="kelas_baru" required>
+                    {% for value, label in kelas_choices %}
+                      <option value="{{ value }}" {% if (m.kelas_ditetapkan or m.kelas_usulan)==value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <label style="display:flex;gap:0.3rem;align-items:center;margin:0.3rem 0;font-size:0.8rem;">
+                    <input type="checkbox" name="paksa_kuota" value="1"> Paksa kuota
+                  </label>
+                  <button class="btn btn-sm btn-primary" type="submit">Simpan Pindah</button>
+                </form>
+              </details>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10">Belum ada data murid.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="print-footnote help">
+      Alur: Generate usulan (skor tertinggi yang masih ada kuota) → ACC admin → kelas final.
+      Setelah ACC, admin dapat memindahkan murid ke kelas lain.
+    </p>
+  </div>
+</section>
+{% endblock %}

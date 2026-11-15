@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Daftar Penilaian{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Penilaian Wawancara · {{ kelas_label }}</h1>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>NISN</th>
+            <th>Tes Tertulis</th>
+            <th>Status</th>
+            <th>Penilaian Anda</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in calon %}
+          <tr>
+            <td>{{ m.user.nama_lengkap }}</td>
+            <td>{{ m.nisn }}</td>
+            <td>{{ m.skor_tes_tertulis() if m.skor_tes_tertulis() is not none else 'Belum' }}</td>
+            <td><span class="badge">{{ m.status_label }}</span></td>
+            <td>
+              {% if m.id in assessed_ids %}
+                <span class="badge badge-success">Sudah dinilai</span>
+              {% else %}
+                <span class="badge badge-warning">Belum</span>
+              {% endif %}
+            </td>
+            <td><a class="btn btn-sm btn-primary" href="{{ url_for('guru.nilai_murid', murid_id=m.id) }}">Form Nilai</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">Belum ada kandidat untuk kelas Anda.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

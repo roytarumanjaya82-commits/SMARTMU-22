@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Pengaturan Aplikasi</h1>
+    <p class="page-sub">
+      Atur tahun ajaran, gelombang, dan <strong>bobot penilaian berbeda per kelas</strong>
+      untuk menentukan rekomendasi penempatan murid.
+    </p>
+    <form class="panel" method="post">
+      <div class="form-grid">
+        <div class="full">
+          <label>Tahun Ajaran Aktif</label>
+          <input name="tahun_ajaran" value="{{ settings.get('tahun_ajaran','') }}" required>
+        </div>
+        <div>
+          <label>Gelombang Aktif</label>
+          <input name="gelombang_aktif" value="{{ settings.get('gelombang_aktif','1') }}" required>
+          <div class="help">Gelombang tes yang sedang berjalan (contoh: 1).</div>
+        </div>
+        <div>
+          <label>Daftar Gelombang</label>
+          <input name="daftar_gelombang" value="{{ settings.get('daftar_gelombang','1,2,3') }}" required>
+          <div class="help">Pisahkan dengan koma, contoh: 1,2,3.</div>
+        </div>
+        <div class="full"><label>Batas Lulus</label><input name="batas_lulus" value="{{ settings.get('batas_lulus','70') }}"></div>
+      </div>
+
+      <h3 style="margin-top:1.4rem;">Bobot Default (cadangan)</h3>
+      <p class="help" style="margin-top:0;">
+        Dipakai jika bobot khusus suatu kelas belum diisi. Nilai akan dinormalisasi ke total 100%.
+      </p>
+      <div class="form-grid">
+        <div>
+          <label>Default Tes Tertulis (%)</label>
+          <input name="bobot_tes_tertulis" value="{{ settings.get('bobot_tes_tertulis','30') }}">
+        </div>
+        <div>
+          <label>Default Wawancara (%)</label>
+          <input name="bobot_wawancara" value="{{ settings.get('bobot_wawancara','50') }}">
+        </div>
+        <div>
+          <label>Default Psikotes (%)</label>
+          <input name="bobot_psikotes" value="{{ settings.get('bobot_psikotes','20') }}">
+        </div>
+      </div>
+
+      <h3 style="margin-top:1.4rem;">Kuota per Kelas</h3>
+      <p class="help" style="margin-top:0;">
+        Batas jumlah murid yang dapat ditetapkan ke tiap kelas pada tahun ajaran aktif.
+        Isi <strong>0</strong> jika tidak dibatasi. Kolom terisi dihitung dari murid yang sudah ditetapkan kelasnya.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Kelas</th>
+              <th>Kuota</th>
+              <th>Sudah terisi</th>
+              <th>Sisa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            {% set k = kuota_kelas.get(value, 0) %}
+            {% set t = terisi_kelas.get(value, 0) %}
+            <tr>
+              <td><strong>{{ label }}</strong></td>
+              <td>
+                <input type="number" min="0" step="1" name="kuota_{{ value }}"
+                       value="{{ settings.get('kuota_' ~ value, k) }}">
+              </td>
+              <td>{{ t }}</td>
+              <td>
+                {% if k and k > 0 %}
+                  {% if t >= k %}
+                    <span class="badge badge-danger">Penuh</span>
+                  {% else %}
+                    <span class="badge badge-success">{{ k - t }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="help">Tidak dibatasi</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:1.4rem;">Bobot per Kelas (penentu rekomendasi)</h3>
+      <p class="help" style="margin-top:0;">
+        Setiap kelas punya bobot sendiri. Skor gabungan dihitung per kelas, lalu
+        <strong>murid direkomendasikan ke kelas dengan skor gabungan tertinggi</strong>.
+        Contoh: skor Multimedia paling tinggi → rekomendasi ke Multimedia.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Kelas</th>
+              <th>Bobot Tes Tertulis (%)</th>
+              <th>Bobot Wawancara (%)</th>
+              <th>Bobot Psikotes (%)</th>
+              <th>Hasil normalisasi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            {% set bt = settings.get('bobot_tes_' ~ value, settings.get('bobot_tes_tertulis','30')) %}
+            {% set bw = settings.get('bobot_wawancara_' ~ value, settings.get('bobot_wawancara','50')) %}
+            {% set bp = settings.get('bobot_psikotes_' ~ value, settings.get('bobot_psikotes','20')) %}
+            {% set norm = bobot_kelas.get(value, (0,0,0)) %}
+            <tr>
+              <td><strong>{{ label }}</strong></td>
+              <td><input type="number" step="0.01" min="0" name="bobot_tes_{{ value }}" value="{{ bt }}"></td>
+              <td><input type="number" step="0.01" min="0" name="bobot_wawancara_{{ value }}" value="{{ bw }}"></td>
+              <td><input type="number" step="0.01" min="0" name="bobot_psikotes_{{ value }}" value="{{ bp }}"></td>
+              <td class="help">{{ norm[0] }} / {{ norm[1] }} / {{ norm[2] }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions"><button class="btn btn-primary" type="submit">Simpan Pengaturan</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Detail Murid{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <h1 class="page-title">{{ murid.user.nama_lengkap }}</h1>
+        <p class="page-sub">NISN {{ murid.nisn }} · Status: {{ murid.status_label }}</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('admin.laporan_individu', murid_id=murid.id) }}">Lihat Laporan Individu</a>
+        <a class="btn btn-secondary" href="{{ url_for('admin.murid_list', gelombang=murid.gelombang or '1') }}">Kembali</a>
+        <form method="post" action="{{ url_for('admin.hapus_murid', murid_id=murid.id) }}" style="display:inline;"
+              onsubmit="return confirm('Hapus murid {{ murid.user.nama_lengkap }} (NISN {{ murid.nisn }})?\nAkun login, jawaban tes, dan penilaian ikut terhapus. Tidak bisa dibatalkan.');">
+          <button class="btn btn-danger" type="submit">Hapus Murid</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="score-box" style="margin-bottom:1.2rem;">
+      <div class="score-item"><span>Tes Tertulis</span><strong>{{ murid.skor_tes_tertulis() if murid.skor_tes_tertulis() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Wawancara</span><strong>{{ murid.nilai_rekomendasi_wawancara() if murid.nilai_rekomendasi_wawancara() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Psikotes</span><strong>{{ murid.skor_psikotes() if murid.skor_psikotes() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Gabungan / Rekomendasi</span><strong style="font-size:1.0rem;">{{ murid.nilai_rekomendasi() if murid.nilai_rekomendasi() is not none else '-' }} · {{ murid.rekomendasi_kelas_label }}</strong></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Data Diri</h3>
+        <p><strong>Username Murid:</strong> {{ murid.user.username }}</p>
+        <p><strong>Tahun Ajaran:</strong> {{ murid.tahun_ajaran or tahun_ajaran }}</p>
+        <p><strong>Gelombang:</strong> {{ label_gelombang(murid.gelombang) }}</p>
+        <p>
+          <strong>Jalur Tes:</strong>
+          {% if murid.is_tes_susulan %}
+            <span class="badge badge-warning">Tes Susulan</span>
+            {% if murid.alasan_susulan %} · {{ murid.alasan_susulan }}{% endif %}
+            {% if murid.tanggal_susulan %} · {{ murid.tanggal_susulan.strftime('%d/%m/%Y') }}{% endif %}
+          {% else %}
+            Reguler
+          {% endif %}
+        </p>
+        <p><strong>Asal Sekolah:</strong> {{ murid.asal_sekolah or '-' }}</p>
+        <p><strong>Orang Tua:</strong> {{ murid.nama_ortu or '-' }} ({{ murid.no_hp_ortu or '-' }})</p>
+        {% if murid.ortu_user %}
+        <p><strong>Login Orang Tua:</strong> {{ murid.ortu_user.username }}
+          · password awal <code>{{ default_password_ortu }}</code>
+          {% if not murid.ortu_user.is_active_user %}<span class="badge badge-danger">Nonaktif</span>{% endif %}
+        </p>
+        {% else %}
+        <p><strong>Login Orang Tua:</strong> belum dibuat — sinkronkan dari Data Murid.</p>
+        {% endif %}
+        <p><strong>Alamat:</strong> {{ murid.alamat or '-' }}</p>
+        <p><strong>Pilihan 1:</strong> {{ murid.pilihan1_label }}</p>
+        <p><strong>Pilihan 2:</strong> {{ murid.pilihan2_label }}</p>
+        <p><strong>Rekomendasi Sistem:</strong> {{ murid.rekomendasi_kelas_label }}</p>
+        <p><strong>Kelas Ditetapkan:</strong> {{ murid.kelas_akhir_label }}</p>
+      </div>
+      <div class="panel">
+        <h3>Tes Susulan (berhalangan hadir)</h3>
+        <p class="help">Tandai jika murid tidak hadir pada jadwal tes reguler.</p>
+        <form method="post" action="{{ url_for('admin.tes_susulan') }}">
+          <input type="hidden" name="murid_id" value="{{ murid.id }}">
+          <input type="hidden" name="gelombang" value="{{ murid.gelombang or gelombang_aktif }}">
+          {% if murid.is_tes_susulan %}
+            <input type="hidden" name="aksi" value="batal">
+            <p>Saat ini masuk jalur <strong>tes susulan</strong>.</p>
+            <div class="actions">
+              <button class="btn btn-secondary" type="submit">Batalkan Status Susulan</button>
+              <a class="btn btn-primary" href="{{ url_for('admin.tes_susulan', gelombang=murid.gelombang or gelombang_aktif) }}">Kelola Susulan</a>
+            </div>
+          {% else %}
+            <input type="hidden" name="aksi" value="tandai">
+            <div class="form-grid">
+              <div class="full">
+                <label>Alasan berhalangan</label>
+                <input name="alasan_susulan" placeholder="Sakit / keperluan keluarga / dll">
+              </div>
+              <div>
+                <label>Tanggal rencana susulan</label>
+                <input type="date" name="tanggal_susulan">
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" type="submit">Tandai Tes Susulan</button>
+            </div>
+          {% endif %}
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Tetapkan Kelas</h3>
+        <p class="help">Default mengikuti rekomendasi skor gabungan (tes tertulis + wawancara).</p>
+        <form method="post" action="{{ url_for('admin.tetapkan_kelas', murid_id=murid.id) }}">
+          <div class="form-grid">
+            <div class="full">
+              <label>Kelas Penempatan</label>
+              {% set default_kelas = murid.kelas_ditetapkan or murid.rekomendasi_kelas() or murid.pilihan_kelas_1 %}
+              <select name="kelas_ditetapkan" required>
+                {% for value, label in kelas_choices %}
+                  {% set info = kuota_info.get(value, {}) %}
+                  <option value="{{ value }}" {% if default_kelas==value %}selected{% endif %}>
+                    {{ label }}{% if murid.rekomendasi_kelas()==value %} (rekomendasi){% endif %}
+                    {% if info.kuota and info.kuota > 0 %}
+                      — kuota {{ info.terisi }}/{{ info.kuota }}
+                      {% if info.sisa == 0 %} · PENUH{% endif %}
+                    {% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="full">
+              <label>Catatan Admin</label>
+              <textarea name="catatan_admin">{{ murid.catatan_admin or '' }}</textarea>
+            </div>
+            <div class="full">
+              <label style="display:flex;gap:0.5rem;align-items:center;">
+                <input type="checkbox" name="paksa_kuota" value="1">
+                Paksa tetapkan meski kuota penuh
+              </label>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="submit">Simpan Penempatan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Nilai Wawancara per Kelas (skala 100)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kelas</th><th>Nilai</th><th>Guru</th><th>Catatan</th></tr></thead>
+          <tbody>
+            {% for p in murid.penilaian|sort(attribute='nilai_akhir', reverse=True) %}
+            <tr>
+              <td>
+                {{ p.kelas_label }}
+                {% if murid.rekomendasi_kelas() == p.kelas_tujuan %}
+                  <span class="badge badge-success">Tertinggi</span>
+                {% endif %}
+              </td>
+              <td><strong>{{ p.nilai_akhir }}</strong></td>
+              <td>{{ p.guru.nama_lengkap }}</td>
+              <td>{{ p.catatan or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">Belum ada penilaian.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Kisi-kisi Soal{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div class="print-header">
+      <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
+      <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
+      <h3>Kisi-kisi Soal Tes Tertulis</h3>
+      <p>Tahun Ajaran {{ tahun_ajaran }}{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</p>
+    </div>
+
+    {% if not tampilkan %}
+    <div class="panel">
+      <p>Kisi-kisi soal belum dipublikasikan admin.</p>
+    </div>
+    {% else %}
+    <div class="actions no-print" style="margin-bottom:1rem;">
+      <button class="btn btn-primary" type="button" onclick="window.print()">Cetak</button>
+      {% if back_url %}
+      <a class="btn btn-secondary" href="{{ back_url }}">Kembali</a>
+      {% endif %}
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Filter Kelas</label>
+          <select name="kelas" onchange="this.form.submit()">
+            <option value="">Semua</option>
+            {% for value, label in kelas_choices %}
+              <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kelas</th>
+            <th>Materi</th>
+            <th>Indikator</th>
+            <th>Level</th>
+            <th>Bobot</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ s.kelas_label }}</td>
+            <td>{{ s.materi or '—' }}</td>
+            <td>{{ s.indikator or '—' }}</td>
+            <td>{{ s.level_kognitif or '—' }}</td>
+            <td>{{ s.bobot }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6">Belum ada kisi-kisi.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

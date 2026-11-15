@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Hasil Penilaian Guru{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Hasil Penilaian · {{ kelas_label }}</h1>
+    <p class="page-sub">Nilai kelas ini berskala 100. Rekomendasi sistem mengikuti nilai tertinggi antar semua kelas.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Peringkat</th>
+            <th>Nama</th>
+            <th>Nilai {{ kelas_label }}</th>
+            <th>Rekomendasi Sistem</th>
+            <th>Catatan</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ p.murid.user.nama_lengkap }}</td>
+            <td><strong>{{ p.nilai_akhir }}</strong></td>
+            <td>
+              <span class="badge {% if p.murid.rekomendasi_kelas() == p.kelas_tujuan %}badge-success{% endif %}">
+                {{ p.murid.rekomendasi_kelas_label }}
+              </span>
+            </td>
+            <td>{{ p.catatan or '-' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">Belum ada penilaian.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Hasil Wawancara{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Hasil Wawancara</h1>
+    <p class="page-sub">{{ current_user.nama_lengkap }} · Progress {{ murid.progress_wawancara_label }}</p>
+
+    <div class="score-box" style="margin-bottom:1.2rem;">
+      <div class="score-item"><span>Nilai Tertinggi</span><strong>{{ murid.nilai_rekomendasi_wawancara() if murid.nilai_rekomendasi_wawancara() is not none else '-' }}</strong></div>
+      <div class="score-item"><span>Rekomendasi Wawancara</span><strong style="font-size:1.1rem;">{{ murid.rekomendasi_wawancara_label }}</strong></div>
+      <div class="score-item"><span>Progress</span><strong style="font-size:1.1rem;">{{ murid.progress_wawancara_label }}</strong></div>
+    </div>
+
+    <div class="panel">
+      <h3>Rekap 5 Sesi Wawancara</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Sesi</th><th>Nilai</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for value, label in kelas_choices %}
+            <tr>
+              <td>{{ label }}</td>
+              <td>{% if value in nilai_per_kelas %}<strong>{{ nilai_per_kelas[value] }}</strong>{% else %}Belum dinilai{% endif %}</td>
+              <td>
+                {% if murid.rekomendasi_dari_wawancara() == value %}
+                  <span class="badge badge-success">Tertinggi</span>
+                {% elif value in nilai_per_kelas %}
+                  <span class="badge">Selesai</span>
+                {% else %}
+                  <span class="badge badge-warning">Belum</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn-secondary" href="{{ url_for('murid.hasil_tes') }}">Hasil Tes Tertulis</a>
+      <a class="btn btn-primary" href="{{ url_for('murid.hasil_gabungan') }}">Hasil Gabungan</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

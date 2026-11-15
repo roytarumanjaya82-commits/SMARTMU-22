@@ -507,14 +507,27 @@ export function usulanCatatanGuru(state, siswaId) {
       : topik.length
         ? `Orang tua diharapkan mendukung penerapan hasil layanan ${joinDan(topik)} di rumah.`
         : "",
-    tindakLanjut: bidangLemah.length
-      ? `Guru BK akan melanjutkan pendampingan pada bidang ${joinDan(bidangLemah)} dan berkoordinasi dengan wali kelas.`
-      : topik.length
-        ? `Perkembangan setelah layanan ${joinDan(topik)} dipantau bersama wali kelas pada pertemuan berikutnya.`
-        : kuat.length
-          ? "Capaian yang sudah baik dipelihara dan diperkuat melalui layanan klasikal atau kelompok."
-          : "",
+    tindakLanjut: "",
   };
+}
+
+/** Satu teks Catatan Guru BK untuk form/cetak; data lama digabung, tindak lanjut diabaikan. */
+export function teksCatatanGuruBK(rec, usulan = null) {
+  const potongan = [rec?.kekuatan, rec?.pendampingan, rec?.catatanGuru, rec?.rekomendasiOrangtua]
+    .map((s) => String(s || "").trim())
+    .filter(Boolean);
+  const unik = [];
+  for (const p of potongan) {
+    if (!unik.includes(p)) unik.push(p);
+  }
+  if (unik.length) return unik.join(" ");
+  if (usulan) {
+    return [usulan.kekuatan, usulan.pendampingan, usulan.catatanGuru, usulan.rekomendasiOrangtua]
+      .map((s) => String(s || "").trim())
+      .filter(Boolean)
+      .join(" ");
+  }
+  return "";
 }
 
 export function isiCatatanGuruKosong(state, siswaId) {
@@ -522,9 +535,14 @@ export function isiCatatanGuruKosong(state, siswaId) {
   const siswa = state.siswa.find((s) => s.id === siswaId);
   const usulan = usulanCatatanGuru(state, siswaId);
   let n = 0;
-  for (const key of ["kekuatan", "pendampingan", "catatanGuru", "rekomendasiOrangtua", "tindakLanjut"]) {
-    if (!String(rec[key] || "").trim() && usulan[key]) {
-      rec[key] = usulan[key];
+  if (!String(rec.catatanGuru || "").trim()) {
+    const teks = teksCatatanGuruBK(rec, usulan);
+    if (teks) {
+      rec.catatanGuru = teks;
+      rec.kekuatan = "";
+      rec.pendampingan = "";
+      rec.rekomendasiOrangtua = "";
+      rec.tindakLanjut = "";
       n++;
     }
   }
@@ -868,11 +886,7 @@ export const KEPALA_DEF_DF = [
   "Pengalaman Memahami",
   "Pengalaman Mengaplikasi",
   "Pengalaman Merefleksi",
-  "Kekuatan",
-  "Perlu Pendampingan",
-  "Catatan Perkembangan",
-  "Rekomendasi bagi Orang Tua",
-  "Tindak Lanjut",
+  "Catatan Guru BK",
 ];
 
 export const KEPALA_DEF_E = ["Tanggal", "Jenis", "Bidang", "Topik", "NISN sasaran", "Rahasia"];
@@ -888,7 +902,12 @@ const DEF_DF_ALIAS = {
   merefleksi: ["pengalaman merefleksi", "merefleksi"],
   kekuatan: ["kekuatan"],
   pendampingan: ["perlu pendampingan", "pendampingan"],
-  catatanGuru: ["catatan perkembangan", "catatan guru", "catatan perkembangan untuk raport"],
+  catatanGuru: [
+    "catatan guru bk",
+    "catatan guru",
+    "catatan perkembangan",
+    "catatan perkembangan untuk raport",
+  ],
   rekomendasiOrangtua: ["rekomendasi bagi orang tua", "rekomendasi orang tua", "rekomendasi"],
   tindakLanjut: ["tindak lanjut"],
 };
@@ -928,7 +947,7 @@ function cariSiswaDiKelas(state, kelasId, nisn, nama) {
 export function matrixBlankoDefDf(state, kelasId) {
   const rows = [KEPALA_DEF_DF.slice()];
   for (const s of siswaDiKelas(state, kelasId)) {
-    rows.push([s.nisn || "", s.nama || "", "", "", "", "", "", "", "", "", "", "", ""]);
+    rows.push([s.nisn || "", s.nama || "", "", "", "", "", "", "", ""]);
   }
   return rows;
 }
@@ -946,11 +965,7 @@ export function matrixContohDefDf(state, kelasId) {
       "Murid memahami materi layanan yang diberikan.",
       "Murid mencoba menerapkan hasil layanan di kelas.",
       "Murid merefleksikan pengalaman setelah layanan.",
-      `${nama} menunjukkan kekuatan pada bidang pribadi dan sosial.`,
-      `${nama} masih perlu pendampingan pada kebiasaan belajar.`,
-      `Pada semester ini ${nama} mengikuti layanan pengenalan potensi diri.`,
-      "Orang tua diharapkan mendampingi murid dengan komunikasi yang hangat di rumah.",
-      "Guru BK memantau perkembangan bersama wali kelas pada pertemuan berikutnya.",
+      `${nama} menunjukkan kekuatan pada bidang pribadi dan sosial. ${nama} masih perlu pendampingan pada kebiasaan belajar. Pada semester ini ${nama} mengikuti layanan pengenalan potensi diri. Orang tua diharapkan mendampingi murid dengan komunikasi yang hangat di rumah.`,
     ]);
   }
   return rows;
@@ -1021,11 +1036,13 @@ export function parseLembarDefDf(matrix) {
         mengaplikasi: ambil("mengaplikasi"),
         merefleksi: ambil("merefleksi"),
       },
-      kekuatan: ambil("kekuatan"),
-      pendampingan: ambil("pendampingan"),
-      catatanGuru: ambil("catatanGuru"),
-      rekomendasiOrangtua: ambil("rekomendasiOrangtua"),
-      tindakLanjut: ambil("tindakLanjut"),
+      catatanGuru: [ambil("kekuatan"), ambil("pendampingan"), ambil("catatanGuru"), ambil("rekomendasiOrangtua")]
+        .filter(Boolean)
+        .join(" "),
+      kekuatan: "",
+      pendampingan: "",
+      rekomendasiOrangtua: "",
+      tindakLanjut: "",
       baris: i + 1,
     });
   }
@@ -1194,11 +1211,13 @@ export function imporDefKelas(state, kelasId, { dfRows = [], eRows = [] } = {}) 
         ubah = true;
       }
     }
-    for (const key of ["kekuatan", "pendampingan", "catatanGuru", "rekomendasiOrangtua", "tindakLanjut"]) {
-      if (row[key]) {
-        rec[key] = row[key];
-        ubah = true;
-      }
+    if (row.catatanGuru) {
+      rec.catatanGuru = row.catatanGuru;
+      rec.kekuatan = "";
+      rec.pendampingan = "";
+      rec.rekomendasiOrangtua = "";
+      rec.tindakLanjut = "";
+      ubah = true;
     }
     if (ubah) hasil.df++;
   }

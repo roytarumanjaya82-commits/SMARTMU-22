@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Portal Orang Tua{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Portal Orang Tua</h1>
+    <p class="page-sub">Pantau tes tertulis, wawancara, dan rekomendasi kelas anak Anda.</p>
+
+    {% if not murid %}
+    <div class="panel">
+      <p>Akun ini belum terhubung ke data murid. Hubungi admin sekolah.</p>
+    </div>
+    {% else %}
+    <div class="stats">
+      <div class="stat panel">
+        <div class="label">Anak</div>
+        <div class="value" style="font-size:1.15rem;">{{ murid.user.nama_lengkap }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Tes Tertulis</div>
+        <div class="value" style="font-size:1.2rem;">{{ murid.progress_tes_label }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Wawancara</div>
+        <div class="value" style="font-size:1.4rem;">{{ murid.progress_wawancara_label }}</div>
+      </div>
+      <div class="stat panel">
+        <div class="label">Rekomendasi</div>
+        <div class="value" style="font-size:1.05rem;">{{ murid.rekomendasi_kelas_label }}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Data Anak</h3>
+      <p><strong>NISN:</strong> {{ murid.nisn }}</p>
+      <p><strong>Gelombang:</strong> {{ label_gelombang(murid.gelombang) }}</p>
+      <p><strong>Kelas ditetapkan:</strong> {{ murid.kelas_akhir_label }}</p>
+      <p class="help">Bobot penilaian: Tes {{ bobot_tes }}% + Wawancara {{ bobot_wawancara }}% + Psikotes {{ bobot_psikotes }}%</p>
+      <div class="actions">
+        <a class="btn btn-secondary" href="{{ url_for('ortu.laporan_tes') }}">Laporan Tes Tertulis</a>
+        <a class="btn btn-secondary" href="{{ url_for('ortu.kisi_kisi') }}">Kisi-kisi Soal</a>
+        <a class="btn btn-secondary" href="{{ url_for('ortu.laporan_wawancara') }}">Laporan Wawancara</a>
+        <a class="btn btn-primary" href="{{ url_for('ortu.laporan_gabungan') }}">Hasil Gabungan</a>
+        <a class="btn btn-secondary" href="{{ url_for('ortu.ganti_password') }}">Ganti Password</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

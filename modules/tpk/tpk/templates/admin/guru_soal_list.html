@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Guru Pembuat Soal{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <h1 class="page-title">Guru Pembuat Soal</h1>
+    <p class="page-sub">
+      Setiap akun ditugaskan ke <strong>satu kelas</strong> (Olimpiade, Tahfidz, dst.)
+      dan hanya bisa membuat/mengelola soal tes tertulis kelas tersebut.
+    </p>
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Tambah Guru Pembuat Soal</h3>
+        <form method="post">
+          <div class="form-grid">
+            <div><label>Username</label><input name="username" placeholder="soal_olimpiade" required></div>
+            <div><label>Password awal</label><input name="password" value="guru123"></div>
+            <div class="full"><label>Nama Lengkap</label><input name="nama_lengkap" required></div>
+            <div>
+              <label>Kelas Soal yang Ditugaskan</label>
+              <select name="kelas_penguji" required>
+                {% for value, label in kelas_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Simpan</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Daftar Guru Pembuat Soal</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nama</th><th>Kelas Soal</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for g in items %}
+              <tr>
+                <td>{{ g.nama_lengkap }}<br><small>{{ g.username }}</small></td>
+                <td><strong>{{ g.kelas_label }}</strong></td>
+                <td>
+                  {% if g.is_active_user %}<span class="badge badge-success">Aktif</span>
+                  {% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}
+                </td>
+                <td>
+                  <form method="post" action="{{ url_for('admin.guru_soal_toggle', user_id=g.id) }}">
+                    <button class="btn btn-sm btn-secondary" type="submit">Toggle</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4">Belum ada guru pembuat soal.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

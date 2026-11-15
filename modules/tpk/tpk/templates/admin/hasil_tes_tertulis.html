@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Laporan Tes Tertulis{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <h1 class="page-title">Laporan Hasil Tes Tertulis</h1>
+        <p class="page-sub">
+          Tahun Ajaran <strong>{{ tahun_ajaran }}</strong> · {{ label_gelombang(gelombang) }}.
+          Nilai ditampilkan per kelas soal yang dikerjakan murid.
+        </p>
+      </div>
+      <div class="actions no-print">
+        <a class="btn btn-secondary" href="{{ url_for('admin.hasil_wawancara', gelombang=gelombang) }}">Laporan Wawancara</a>
+        <a class="btn btn-primary" href="{{ url_for('admin.hasil_gabungan', gelombang=gelombang) }}">Hasil Gabungan</a>
+        <button class="btn btn-secondary" type="button" onclick="window.print()">Cetak</button>
+      </div>
+    </div>
+
+    <form class="panel no-print" method="get">
+      <div class="form-grid">
+        <div>
+          <label>Gelombang</label>
+          <select name="gelombang" onchange="this.form.submit()">
+            {% for g in daftar_gelombang %}
+              <option value="{{ g }}" {% if gelombang==g %}selected{% endif %}>{{ label_gelombang(g) }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="table-wrap panel">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Nama</th>
+            <th>NISN</th>
+            {% for value, label in kelas_choices %}
+              <th>{{ label }}</th>
+            {% endfor %}
+            <th>Progress</th>
+            <th>Rata-rata</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in items %}
+          {% set nilai = m.nilai_tes_per_kelas() %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ m.user.nama_lengkap }}</td>
+            <td>{{ m.nisn }}</td>
+            {% for value, label in kelas_choices %}
+              <td>
+                {% if value in nilai %}
+                  <strong>{{ nilai[value] }}</strong>
+                {% else %}
+                  <span class="help">belum</span>
+                {% endif %}
+              </td>
+            {% endfor %}
+            <td>
+              <span class="badge {% if m.tes_tertulis_selesai() %}badge-success{% else %}badge-warning{% endif %}">
+                {{ m.progress_tes_label }}
+              </span>
+            </td>
+            <td><strong>{{ m.skor_tes_tertulis() if m.skor_tes_tertulis() is not none else '—' }}</strong></td>
+            <td class="no-print">
+              <a class="btn btn-sm btn-secondary" href="{{ url_for('admin.laporan_individu', murid_id=m.id) }}">Detail</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 6 + kelas_choices|length }}">Belum ada data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

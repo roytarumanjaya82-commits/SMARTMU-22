@@ -190,3 +190,219 @@ button {
   .puncak { align-items: flex-start; }
   .daftar-db li { align-items: flex-start; flex-direction: column; }
 }
+
+/* Beranda: menu portal sebagai sidebar */
+body.beranda {
+  background: #e8efe9;
+}
+.portal-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+.portal-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0c4f3b 0%, #14684f 55%, #0a3d2e 100%);
+  color: #f4faf7;
+  padding: 18px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+.sidebar-atas {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+.sidebar-brand img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px;
+}
+.sidebar-brand strong {
+  display: block;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+.sidebar-brand small {
+  display: block;
+  opacity: 0.78;
+  font-size: 0.78rem;
+}
+.sidebar-garis {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 12px;
+  background: transparent;
+  padding: 10px 9px;
+  margin: 0;
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.sidebar-garis span {
+  display: block;
+  height: 2px;
+  background: #fff;
+  border-radius: 99px;
+}
+.sidebar-judul {
+  margin: 0 8px 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  font-weight: 700;
+}
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.sidebar-item {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 12px;
+  align-items: start;
+  text-decoration: none;
+  color: inherit;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.04);
+}
+.sidebar-item:hover,
+.sidebar-item:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.16);
+  outline: none;
+}
+.sidebar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 99px;
+  margin-top: 5px;
+}
+.sidebar-teks strong {
+  display: block;
+  font-size: 0.98rem;
+  margin-bottom: 2px;
+}
+.sidebar-teks small {
+  display: block;
+  opacity: 0.78;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.sidebar-kosong {
+  margin: 8px;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.sidebar-kaki {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+.sidebar-kaki a {
+  text-decoration: none;
+  color: inherit;
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 8px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.sidebar-kaki a:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.portal-utama {
+  padding: 28px 28px 40px;
+  min-width: 0;
+}
+.utama-kepala {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--hijau);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.utama-kepala h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  letter-spacing: -0.03em;
+  color: var(--hijau);
+}
+.utama-kepala .sapa { margin: 8px 0 0; }
+.utama-aksi { margin: 0; }
+.ringkas-portal .daftar-pintas {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+.daftar-pintas li {
+  border-top: 1px solid var(--garis);
+}
+.daftar-pintas a {
+  display: block;
+  text-decoration: none;
+  font-weight: 700;
+  color: var(--hijau);
+  padding: 12px 2px;
+}
+.daftar-pintas a:hover { color: var(--hijau-2); }
+
+@media (max-width: 900px) {
+  .portal-shell {
+    grid-template-columns: 1fr;
+  }
+  .portal-sidebar {
+    position: relative;
+    height: auto;
+    min-height: 0;
+    padding-bottom: 12px;
+  }
+  .sidebar-garis { display: inline-flex; }
+  .sidebar-menu,
+  .sidebar-kaki {
+    display: none;
+  }
+  .portal-shell.menu-buka .sidebar-menu,
+  .portal-shell.menu-buka .sidebar-kaki {
+    display: flex;
+  }
+  .portal-utama { padding: 20px 16px 32px; }
+  .utama-kepala { flex-direction: column; }
+}

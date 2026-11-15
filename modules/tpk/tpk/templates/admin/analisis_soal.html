@@ -6,7 +6,7 @@
     <div class="print-header">
       <img class="print-logo" src="{{ url_for('static', filename='img/logo-smartmu22.png') }}" alt="Logo">
       <h2>SMP Muhammadiyah 22 Setiabudi Pamulang</h2>
-      <h3>Analisis Setiap Soal Tes Tertulis</h3>
+      <h3>Analisis Soal Tes Tertulis · Rekap per Kelas</h3>
       <p>Tahun Ajaran {{ tahun_ajaran }} · {{ label_gelombang(gelombang) }}{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</p>
     </div>
 
@@ -29,7 +29,7 @@
         <div>
           <label>Kelas Soal</label>
           <select name="kelas" onchange="this.form.submit()">
-            <option value="">Semua</option>
+            <option value="">Semua (rekap per kelas)</option>
             {% for value, label in kelas_choices %}
               <option value="{{ value }}" {% if kelas==value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
@@ -38,7 +38,162 @@
       </div>
     </form>
 
+    <div class="panel">
+      <h3>Kriteria kelayakan soal</h3>
+      <p class="page-sub" style="margin-top:0;">
+        Berdasarkan <strong>indeks kemudahan</strong> (% murid menjawab benar), minimal {{ kriteria.min_jawab }} jawaban:
+      </p>
+      <ul class="kriteria-list">
+        <li><span class="badge badge-success">Layak</span> % benar {{ kriteria.p_min|int }}–{{ kriteria.p_max|int }}% — tingkat kesulitan proporsional, soal dapat dipakai.</li>
+        <li><span class="badge badge-danger">Perlu diperbaiki</span> % benar &lt; {{ kriteria.p_min|int }}% (terlalu sulit) atau &gt; {{ kriteria.p_max|int }}% (terlalu mudah).</li>
+        <li><span class="badge badge-warning">Belum dinilai</span> jawaban &lt; {{ kriteria.min_jawab }} peserta — data belum cukup.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h3>Rekap per Kelas</h3>
+      <div class="table-wrap">
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th>Kelas</th>
+              <th>Jml Soal</th>
+              <th>Layak<br><small>(nomor soal)</small></th>
+              <th>Perlu diperbaiki<br><small>(nomor soal)</small></th>
+              <th>Belum dinilai<br><small>(nomor soal)</small></th>
+              <th>% Benar<br><small>(keseluruhan)</small></th>
+              <th>Kesimpulan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for k in rekap_kelas %}
+            <tr>
+              <td>
+                <strong>{{ k.kelas_label }}</strong>
+                {% if not kelas %}
+                <br><a class="no-print" href="{{ url_for('admin.analisis_soal', gelombang=gelombang, kelas=k.kelas) }}">Detail soal</a>
+                {% endif %}
+              </td>
+              <td>{{ k.jumlah_soal }}</td>
+              <td>
+                <strong class="teks-layak">{{ k.jml_layak }}</strong>
+                {% if k.jml_layak %}<br><small>No. {{ k.nomor_layak }}</small>{% endif %}
+              </td>
+              <td>
+                <strong class="teks-perbaiki">{{ k.jml_perbaiki }}</strong>
+                {% if k.jml_perbaiki %}<br><small>No. {{ k.nomor_perbaiki }}</small>{% endif %}
+              </td>
+              <td>
+                {{ k.jml_belum }}
+                {% if k.jml_belum %}<br><small>No. {{ k.nomor_belum }}</small>{% endif %}
+              </td>
+              <td>
+                {% if k.persen_benar_keseluruhan is not none %}
+                <strong>{{ k.persen_benar_keseluruhan }}%</strong>
+                {% else %}—{% endif %}
+              </td>
+              <td><small>{{ k.kesimpulan }}</small></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7">Belum ada data rekap kelas.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% for k in rekap_kelas %}
+    <div class="panel kelayakan-kelas">
+      <h3>{{ k.kelas_label }} — soal layak &amp; yang perlu diperbaiki</h3>
+      <p class="page-sub" style="margin-top:0;">{{ k.kesimpulan }}</p>
+      <div class="ringkas-nomor-soal">
+        <span class="teks-layak"><strong>Layak:</strong> No. {{ k.nomor_layak }}</span>
+        <span class="pemisah-nomor">·</span>
+        <span class="teks-perbaiki"><strong>Perlu diperbaiki:</strong> No. {{ k.nomor_perbaiki }}</span>
+        {% if k.jml_belum %}
+        <span class="pemisah-nomor">·</span>
+        <span class="muted"><strong>Belum dinilai:</strong> No. {{ k.nomor_belum }}</span>
+        {% endif %}
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <h4 class="teks-layak">Layak dipakai ({{ k.jml_layak }}){% if k.jml_layak %} — No. {{ k.nomor_layak }}{% endif %}</h4>
+          {% if k.daftar_layak %}
+          <ol class="daftar-kelayakan">
+            {% for s in k.daftar_layak %}
+            <li>
+              <strong>No. {{ s.no }}</strong>
+              {% if s.persen_benar is not none %}· {{ s.persen_benar }}% benar{% endif %}
+              {% if s.materi %}· {{ s.materi }}{% endif %}
+              <br><small class="arabic-field" dir="auto">{{ s.ringkas }}</small>
+              <br><small class="muted">{{ s.status.keterangan }}</small>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <p class="muted">Belum ada soal yang masuk kategori layak.</p>
+          {% endif %}
+        </div>
+        <div>
+          <h4 class="teks-perbaiki">Perlu diperbaiki ({{ k.jml_perbaiki }}){% if k.jml_perbaiki %} — No. {{ k.nomor_perbaiki }}{% endif %}</h4>
+          {% if k.daftar_perbaiki %}
+          <ol class="daftar-kelayakan">
+            {% for s in k.daftar_perbaiki %}
+            <li>
+              <strong>No. {{ s.no }}</strong>
+              {% if s.persen_benar is not none %}· {{ s.persen_benar }}% benar{% endif %}
+              · <em>{{ s.status.kode.replace('_', ' ') }}</em>
+              {% if s.materi %}· {{ s.materi }}{% endif %}
+              <br><small class="arabic-field" dir="auto">{{ s.ringkas }}</small>
+              <br><small class="muted">{{ s.status.keterangan }}</small>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <p class="muted">Tidak ada soal yang perlu diperbaiki pada data ini.</p>
+          {% endif %}
+
+          {% if k.daftar_belum %}
+          <h4 style="margin-top:1rem;">Belum dinilai ({{ k.jml_belum }})</h4>
+          <ol class="daftar-kelayakan">
+            {% for s in k.daftar_belum %}
+            <li>
+              <strong>No. {{ s.no }}</strong>
+              {% if s.materi %}· {{ s.materi }}{% endif %}
+              <br><small class="arabic-field" dir="auto">{{ s.ringkas }}</small>
+              <br><small class="muted">{{ s.status.keterangan }}</small>
+            </li>
+            {% endfor %}
+          </ol>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="panel">
+      <h3>Analisis per Soal — nomor yang layak &amp; perlu diperbaiki{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</h3>
+      {% if rows %}
+      {% for k in rekap_kelas %}
+      <div class="ringkas-nomor-soal">
+        {% if not kelas %}<strong>{{ k.kelas_label }}</strong> — {% endif %}
+        <span class="teks-layak"><strong>Layak:</strong> No. {{ k.nomor_layak }}</span>
+        <span class="pemisah-nomor">·</span>
+        <span class="teks-perbaiki"><strong>Perlu diperbaiki:</strong> No. {{ k.nomor_perbaiki }}</span>
+        {% if k.jml_belum %}
+        <span class="pemisah-nomor">·</span>
+        <span class="muted"><strong>Belum dinilai:</strong> No. {{ k.nomor_belum }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <p class="muted">Belum ada soal untuk dianalisis.</p>
+      {% endif %}
+    </div>
+
     <div class="table-wrap panel">
+      <h3>Rincian per Soal{% if kelas %} · {{ dict(kelas_choices).get(kelas) }}{% endif %}</h3>
       <table class="print-table">
         <thead>
           <tr>
@@ -50,13 +205,15 @@
             <th>Benar</th>
             <th>Salah</th>
             <th>% Benar</th>
+            <th>Status</th>
+            <th>Keterangan</th>
             <th>A</th><th>B</th><th>C</th><th>D</th>
           </tr>
         </thead>
         <tbody>
           {% for r in rows %}
-          <tr>
-            <td>{{ r.no }}</td>
+          <tr class="baris-{{ r.status.kelompok }}">
+            <td><strong>{{ r.no }}</strong></td>
             <td>{{ r.soal.kelas_label }}</td>
             <td>
               <strong>{{ r.soal.materi or '—' }}</strong><br>
@@ -67,18 +224,31 @@
             <td>{{ r.benar }}</td>
             <td>{{ r.salah }}</td>
             <td>{% if r.persen_benar is not none %}<strong>{{ r.persen_benar }}%</strong>{% else %}—{% endif %}</td>
+            <td>
+              {% if r.status.kelompok == 'layak' %}
+              <span class="badge badge-success">{{ r.status.label }}</span>
+              {% elif r.status.kelompok == 'perbaiki' %}
+              <span class="badge badge-danger">{{ r.status.label }}</span>
+              {% else %}
+              <span class="badge badge-warning">{{ r.status.label }}</span>
+              {% endif %}
+            </td>
+            <td><small>{{ r.status.keterangan }}</small></td>
             <td>{{ r.sebaran.A }}</td>
             <td>{{ r.sebaran.B }}</td>
             <td>{{ r.sebaran.C }}</td>
             <td>{{ r.sebaran.D }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="12">Belum ada soal / jawaban.</td></tr>
+          <tr><td colspan="14">Belum ada soal / jawaban.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    <p class="print-footnote">Analisis dihitung dari jawaban murid pada gelombang terpilih.</p>
+    <p class="print-footnote">
+      Kelayakan memakai indeks kemudahan: layak {{ kriteria.p_min|int }}–{{ kriteria.p_max|int }}% benar;
+      di luar rentang = perlu diperbaiki. Minimal {{ kriteria.min_jawab }} jawaban per soal.
+    </p>
   </div>
 </section>
 {% endblock %}

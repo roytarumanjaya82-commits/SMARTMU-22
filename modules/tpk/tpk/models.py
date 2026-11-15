@@ -46,6 +46,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True)
     role = db.Column(db.String(20), nullable=False, default="murid")
     kelas_penguji = db.Column(db.String(30))  # hanya untuk guru
+    # Guru penguji boleh memakai username/password yang sama sebagai pembuat soal
+    juga_pembuat_soal = db.Column(db.Boolean, default=False)
     is_active_user = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -71,7 +73,29 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     @property
+    def is_guru_penguji(self) -> bool:
+        return self.role == "guru"
+
+    @property
+    def is_guru_pembuat_soal(self) -> bool:
+        return self.role == "guru_soal" or (
+            self.role == "guru" and bool(self.juga_pembuat_soal)
+        )
+
+    def punya_peran(self, *roles: str) -> bool:
+        for role in roles:
+            if role == "guru" and self.is_guru_penguji:
+                return True
+            if role == "guru_soal" and self.is_guru_pembuat_soal:
+                return True
+            if self.role == role:
+                return True
+        return False
+
+    @property
     def role_label(self) -> str:
+        if self.role == "guru" and self.juga_pembuat_soal:
+            return "Guru Penguji · Pembuat Soal"
         return dict(ROLE_CHOICES).get(self.role, self.role)
 
     @property
@@ -422,6 +446,11 @@ class SoalTes(db.Model):
     opsi_b = db.Column(db.Text, nullable=False)
     opsi_c = db.Column(db.Text, nullable=False)
     opsi_d = db.Column(db.Text, nullable=False)
+    # Gambar per opsi jawaban (opsional; teks boleh kosong jika ada gambar)
+    gambar_opsi_a = db.Column(db.String(255))
+    gambar_opsi_b = db.Column(db.String(255))
+    gambar_opsi_c = db.Column(db.String(255))
+    gambar_opsi_d = db.Column(db.String(255))
     jawaban_benar = db.Column(db.String(1), nullable=False)  # A/B/C/D
     bobot = db.Column(db.Integer, default=1)
     # Kisi-kisi soal (ditampilkan ke admin / ortu / murid)
@@ -440,6 +469,12 @@ class SoalTes(db.Model):
     @property
     def punya_gambar(self) -> bool:
         return bool(self.gambar)
+
+    def gambar_opsi(self, huruf: str) -> Optional[str]:
+        return getattr(self, f"gambar_opsi_{huruf.lower()}", None)
+
+    def teks_opsi(self, huruf: str) -> str:
+        return getattr(self, f"opsi_{huruf.lower()}", "") or ""
 
     @property
     def ringkas_pertanyaan(self) -> str:

@@ -5,8 +5,8 @@
   <div class="container">
     <h1 class="page-title">Guru Pembuat Soal</h1>
     <p class="page-sub">
-      Setiap akun ditugaskan ke <strong>satu kelas</strong> (Olimpiade, Tahfidz, dst.)
-      dan hanya bisa membuat/mengelola soal tes tertulis kelas tersebut.
+      Setiap akun ditugaskan ke <strong>satu kelas</strong> dan hanya mengelola soal kelas itu.
+      Username &amp; password boleh sama dengan guru penguji — cukup isi username yang sudah ada.
     </p>
     <div class="grid-2">
       <div class="panel">
@@ -32,12 +32,13 @@
         <h3>Daftar Guru Pembuat Soal</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nama</th><th>Kelas Soal</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Nama</th><th>Kelas Soal</th><th>Akun</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for g in items %}
               <tr>
                 <td>{{ g.nama_lengkap }}<br><small>{{ g.username }}</small></td>
                 <td><strong>{{ g.kelas_label }}</strong></td>
+                <td>{% if g.role == 'guru' %}Gabung penguji{% else %}Khusus soal{% endif %}</td>
                 <td>
                   {% if g.is_active_user %}<span class="badge badge-success">Aktif</span>
                   {% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}
@@ -49,7 +50,7 @@
                 </td>
               </tr>
               {% else %}
-              <tr><td colspan="4">Belum ada guru pembuat soal.</td></tr>
+              <tr><td colspan="5">Belum ada guru pembuat soal.</td></tr>
               {% endfor %}
             </tbody>
           </table>

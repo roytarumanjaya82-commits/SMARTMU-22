@@ -7,6 +7,7 @@
     <div class="grid-2">
       <div class="panel">
         <h3>Tambah Guru</h3>
+        <p class="page-sub">Username boleh sama dengan pembuat soal — akses digabung ke satu akun.</p>
         <form method="post">
           <div class="form-grid">
             <div><label>Username</label><input name="username" required></div>
@@ -20,6 +21,9 @@
                 {% endfor %}
               </select>
             </div>
+            <div class="full">
+              <label><input type="checkbox" name="juga_pembuat_soal" value="1" checked> Juga pembuat soal (login sama)</label>
+            </div>
           </div>
           <div class="actions"><button class="btn btn-primary" type="submit">Simpan</button></div>
         </form>
@@ -28,12 +32,13 @@
         <h3>Daftar Guru</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nama</th><th>Kelas</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Nama</th><th>Kelas</th><th>Peran</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {% for g in items %}
               <tr>
                 <td>{{ g.nama_lengkap }}<br><small>{{ g.username }}</small></td>
                 <td>{{ g.kelas_label }}</td>
+                <td>{% if g.juga_pembuat_soal %}Penguji + Soal{% else %}Penguji{% endif %}</td>
                 <td>
                   {% if g.is_active_user %}<span class="badge badge-success">Aktif</span>
                   {% else %}<span class="badge badge-danger">Nonaktif</span>{% endif %}
@@ -45,7 +50,7 @@
                 </td>
               </tr>
               {% else %}
-              <tr><td colspan="4">Belum ada guru.</td></tr>
+              <tr><td colspan="5">Belum ada guru.</td></tr>
               {% endfor %}
             </tbody>
           </table>

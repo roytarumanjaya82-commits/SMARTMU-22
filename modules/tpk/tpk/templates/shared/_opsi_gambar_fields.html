@@ -1,0 +1,27 @@
+{# Fields opsi A–D dengan teks + gambar (upload / paste). #}
+{% macro opsi_fields(soal=None) %}
+{% for huruf in ['a', 'b', 'c', 'd'] %}
+{% set label = huruf|upper %}
+{% set teks = soal.teks_opsi(huruf) if soal else '' %}
+{% set gambar = soal.gambar_opsi(huruf) if soal else None %}
+<div class="full opsi-gambar-field">
+  <label>Opsi {{ label }} (teks dan/atau gambar)</label>
+  <input name="opsi_{{ huruf }}" class="arabic-field" dir="auto" value="{{ teks }}" placeholder="Teks opsi atau kosongkan jika hanya gambar">
+  <input type="hidden" name="gambar_paste_opsi_{{ huruf }}" id="gambarPasteOpsi{{ label }}" class="gambar-paste-input">
+  {% if gambar %}
+  <div class="soal-gambar-preview opsi-preview">
+    <img src="{{ url_for('static', filename=gambar) }}" alt="Gambar opsi {{ label }}">
+  </div>
+  <label style="display:flex;gap:0.4rem;align-items:center;margin-top:0.4rem;">
+    <input type="checkbox" name="hapus_gambar_opsi_{{ huruf }}" value="1"> Hapus gambar opsi {{ label }}
+  </label>
+  {% endif %}
+  <input type="file" name="gambar_opsi_{{ huruf }}" class="gambar-file-input" accept="image/png,image/jpeg,image/gif,image/webp" style="margin-top:0.5rem;">
+  <div class="help">Atau tempel screenshot opsi {{ label }} (Ctrl+V) di kotak berikut.</div>
+  <div class="paste-zone paste-zone-opsi" data-paste-input="gambarPasteOpsi{{ label }}" data-paste-preview="pastePreviewOpsi{{ label }}" tabindex="0">
+    Tempel gambar opsi {{ label }} (Ctrl+V)
+  </div>
+  <div id="pastePreviewOpsi{{ label }}" class="soal-gambar-preview" hidden></div>
+</div>
+{% endfor %}
+{% endmacro %}

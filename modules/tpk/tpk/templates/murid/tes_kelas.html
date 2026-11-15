@@ -30,10 +30,24 @@
           {% endif %}
           <div class="options">
             {% set jawab = sudah.get(s.id).jawaban if s.id in sudah else '' %}
-            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="A" {% if jawab=='A' %}checked{% endif %} {% if locked %}disabled{% endif %} required> A. {{ s.opsi_a }}</label>
-            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="B" {% if jawab=='B' %}checked{% endif %} {% if locked %}disabled{% endif %}> B. {{ s.opsi_b }}</label>
-            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="C" {% if jawab=='C' %}checked{% endif %} {% if locked %}disabled{% endif %}> C. {{ s.opsi_c }}</label>
-            <label class="arabic-field" dir="auto"><input type="radio" name="soal_{{ s.id }}" value="D" {% if jawab=='D' %}checked{% endif %} {% if locked %}disabled{% endif %}> D. {{ s.opsi_d }}</label>
+            {% for huruf in ['A', 'B', 'C', 'D'] %}
+            {% set go = s.gambar_opsi(huruf) %}
+            {% set teks = s.teks_opsi(huruf) %}
+            <label class="arabic-field opsi-pilihan" dir="auto">
+              <input type="radio" name="soal_{{ s.id }}" value="{{ huruf }}" {% if jawab==huruf %}checked{% endif %} {% if locked %}disabled{% endif %} {% if loop.first %}required{% endif %}>
+              <span class="opsi-isi">
+                <strong>{{ huruf }}.</strong>
+                {% if go %}
+                <img class="opsi-gambar" src="{{ url_for('static', filename=go) }}" alt="Opsi {{ huruf }}">
+                {% endif %}
+                {% if teks and not (go and teks.startswith('Lihat gambar opsi')) %}
+                <span>{{ teks }}</span>
+                {% elif teks and not go %}
+                <span>{{ teks }}</span>
+                {% endif %}
+              </span>
+            </label>
+            {% endfor %}
           </div>
         </div>
         {% endfor %}

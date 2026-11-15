@@ -522,6 +522,59 @@ input.arabic-field {
 }
 .options input { width: auto; margin-top: 0.2rem; }
 .options label:hover { border-color: var(--line); background: #fff; }
+.opsi-isi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.opsi-gambar {
+  max-width: min(100%, 360px);
+  max-height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  object-fit: contain;
+}
+.opsi-gambar-field {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
+}
+.paste-zone-opsi {
+  padding: 0.65rem;
+  font-size: 0.9rem;
+}
+.opsi-preview img {
+  max-width: min(100%, 280px);
+  max-height: 160px;
+}
+.kriteria-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+  line-height: 1.55;
+}
+.kriteria-list li { margin-bottom: 0.35rem; }
+.teks-layak { color: var(--success); }
+.teks-perbaiki { color: var(--danger); }
+.daftar-kelayakan {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+  line-height: 1.45;
+}
+.daftar-kelayakan li { margin-bottom: 0.65rem; }
+.kelayakan-kelas h4 { margin: 0 0 0.4rem; font-size: 1rem; }
+.muted { color: var(--muted); }
+.baris-layak td:first-child { box-shadow: inset 3px 0 0 var(--success); }
+.baris-perbaiki td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.ringkas-nomor-soal {
+  margin: 0.45rem 0;
+  padding: 0.65rem 0.85rem;
+  background: #f7faf8;
+  border-radius: 8px;
+  line-height: 1.55;
+}
+.pemisah-nomor { margin: 0 0.35rem; color: var(--muted); }
 
 .score-box {
   display: grid;

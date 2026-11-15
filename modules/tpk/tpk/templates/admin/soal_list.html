@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "shared/_opsi_gambar_fields.html" import opsi_fields %}
 {% block title %}Bank Soal{% endblock %}
 {% block content %}
 <section class="page">
   <div class="container">
     <h1 class="page-title">Bank Soal Tes Tertulis</h1>
     <p class="page-sub">
-      Soal mendukung <strong>teks Arab</strong> dan <strong>gambar</strong>
-      (upload file atau tempel hasil Snipping Tool dengan Ctrl+V).
+      Soal dan <strong>opsi A–D</strong> mendukung teks Arab serta gambar
+      (upload file atau tempel Snipping Tool dengan Ctrl+V).
     </p>
 
     <div class="stats">
@@ -87,10 +88,7 @@
               </div>
               <div id="pastePreview" class="soal-gambar-preview" hidden></div>
             </div>
-            <div><label>Opsi A</label><input name="opsi_a" class="arabic-field" dir="auto" required></div>
-            <div><label>Opsi B</label><input name="opsi_b" class="arabic-field" dir="auto" required></div>
-            <div><label>Opsi C</label><input name="opsi_c" class="arabic-field" dir="auto" required></div>
-            <div><label>Opsi D</label><input name="opsi_d" class="arabic-field" dir="auto" required></div>
+            {{ opsi_fields() }}
             <div>
               <label>Jawaban Benar</label>
               <select name="jawaban_benar">

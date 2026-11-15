@@ -72,3 +72,42 @@ def hapus_gambar_soal(rel_path: str | None) -> None:
             path.unlink()
         except OSError:
             pass
+
+
+def proses_gambar_opsi(request, existing: dict | None = None) -> dict:
+    """Ambil gambar opsi A–D dari form (file / paste / hapus).
+
+    Returns:
+        dict huruf -> path relatif static atau None
+    """
+    existing = existing or {}
+    hasil = {}
+    for huruf in ("a", "b", "c", "d"):
+        lama = existing.get(huruf)
+        if request.form.get(f"hapus_gambar_opsi_{huruf}"):
+            hapus_gambar_soal(lama)
+            hasil[huruf] = None
+            continue
+        file_storage = request.files.get(f"gambar_opsi_{huruf}")
+        paste = request.form.get(f"gambar_paste_opsi_{huruf}")
+        baru = None
+        if file_storage and file_storage.filename:
+            baru = simpan_gambar_file(file_storage, prefix=f"opsi{huruf}")
+        elif paste:
+            baru = simpan_gambar_base64(paste, prefix=f"opsi{huruf}")
+        if baru:
+            hapus_gambar_soal(lama)
+            hasil[huruf] = baru
+        else:
+            hasil[huruf] = lama
+    return hasil
+
+
+def lengkapi_teks_opsi(teks: str, gambar: str | None, huruf: str) -> str:
+    """Jika teks kosong tapi ada gambar, isi placeholder singkat."""
+    isi = (teks or "").strip()
+    if isi:
+        return isi
+    if gambar:
+        return f"Lihat gambar opsi {huruf.upper()}"
+    return ""

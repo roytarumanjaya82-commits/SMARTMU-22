@@ -295,6 +295,56 @@ def tampilkan_kisi_kisi() -> bool:
     return (get_setting("tampilkan_kisi_kisi", "1") or "1") == "1"
 
 
+# Indeks kemudahan (p-value): % murid menjawab benar
+ANALISIS_MIN_JAWAB = 5
+ANALISIS_P_MIN = 30.0  # di bawah ini: terlalu sulit
+ANALISIS_P_MAX = 80.0  # di atas ini: terlalu mudah
+
+
+def status_kelayakan_soal(persen_benar, total_jawab: int) -> dict:
+    """Tentukan kelayakan soal berdasarkan indeks kemudahan."""
+    if total_jawab < ANALISIS_MIN_JAWAB or persen_benar is None:
+        return {
+            "kode": "belum_data",
+            "label": "Belum dinilai",
+            "kelompok": "belum",
+            "keterangan": (
+                f"Jawaban kurang dari {ANALISIS_MIN_JAWAB} peserta; "
+                "belum cukup untuk menilai kelayakan."
+            ),
+        }
+    p = float(persen_benar)
+    if p < ANALISIS_P_MIN:
+        return {
+            "kode": "terlalu_sulit",
+            "label": "Perlu diperbaiki",
+            "kelompok": "perbaiki",
+            "keterangan": (
+                f"Terlalu sulit (% benar {p:.1f}% < {ANALISIS_P_MIN:.0f}%). "
+                "Periksa kunci, kejelasan soal, atau turunkan tingkat kesulitan."
+            ),
+        }
+    if p > ANALISIS_P_MAX:
+        return {
+            "kode": "terlalu_mudah",
+            "label": "Perlu diperbaiki",
+            "kelompok": "perbaiki",
+            "keterangan": (
+                f"Terlalu mudah (% benar {p:.1f}% > {ANALISIS_P_MAX:.0f}%). "
+                "Pertimbangkan revisi agar lebih diskriminatif."
+            ),
+        }
+    return {
+        "kode": "layak",
+        "label": "Layak",
+        "kelompok": "layak",
+        "keterangan": (
+            f"Tingkat kesulitan proporsional "
+            f"({ANALISIS_P_MIN:.0f}%–{ANALISIS_P_MAX:.0f}% benar). Soal layak dipakai."
+        ),
+    }
+
+
 def analisis_soal_tes(tahun: str | None = None, gelombang: str | None = None, kelas: str = ""):
     """Analisis jawaban per soal untuk gelombang tertentu."""
     from tpk.models import JawabanTes, KELAS_CHOICES, Murid, SoalTes
@@ -314,7 +364,10 @@ def analisis_soal_tes(tahun: str | None = None, gelombang: str | None = None, ke
         ).all()
     ]
     rows = []
-    for idx, soal in enumerate(soals, start=1):
+    nomor_per_kelas = {}
+    for soal in soals:
+        nomor_per_kelas[soal.kelas_tujuan] = nomor_per_kelas.get(soal.kelas_tujuan, 0) + 1
+        idx = nomor_per_kelas[soal.kelas_tujuan]
         jawaban = JawabanTes.query.filter(
             JawabanTes.soal_id == soal.id,
             JawabanTes.murid_id.in_(murid_ids) if murid_ids else False,
@@ -325,6 +378,8 @@ def analisis_soal_tes(tahun: str | None = None, gelombang: str | None = None, ke
         for j in jawaban:
             if j.jawaban in sebaran:
                 sebaran[j.jawaban] += 1
+        persen = round((benar / total) * 100, 1) if total else None
+        status = status_kelayakan_soal(persen, total)
         rows.append(
             {
                 "no": idx,
@@ -332,11 +387,124 @@ def analisis_soal_tes(tahun: str | None = None, gelombang: str | None = None, ke
                 "total": total,
                 "benar": benar,
                 "salah": max(total - benar, 0),
-                "persen_benar": round((benar / total) * 100, 1) if total else None,
+                "persen_benar": persen,
                 "sebaran": sebaran,
+                "status": status,
             }
         )
     return rows
+
+
+def rekap_analisis_soal_per_kelas(rows: list) -> list:
+    """Ringkas analisis soal menjadi rekap per kelas soal + kelayakan."""
+    from tpk.models import KELAS_CHOICES
+
+    bucket = {}
+    for r in rows:
+        kode = r["soal"].kelas_tujuan
+        if kode not in bucket:
+            bucket[kode] = {
+                "kelas": kode,
+                "kelas_label": dict(KELAS_CHOICES).get(kode, kode),
+                "jumlah_soal": 0,
+                "total_jawab": 0,
+                "total_benar": 0,
+                "total_salah": 0,
+                "sebaran": {"A": 0, "B": 0, "C": 0, "D": 0},
+                "_persen_list": [],
+                "soal_termudah": None,
+                "soal_tersulit": None,
+                "jml_layak": 0,
+                "jml_perbaiki": 0,
+                "jml_belum": 0,
+                "daftar_layak": [],
+                "daftar_perbaiki": [],
+                "daftar_belum": [],
+            }
+        b = bucket[kode]
+        b["jumlah_soal"] += 1
+        b["total_jawab"] += r["total"]
+        b["total_benar"] += r["benar"]
+        b["total_salah"] += r["salah"]
+        for huruf in ("A", "B", "C", "D"):
+            b["sebaran"][huruf] += r["sebaran"].get(huruf, 0)
+
+        status = r.get("status") or status_kelayakan_soal(r["persen_benar"], r["total"])
+        ringkas = {
+            "no": r["no"],
+            "persen_benar": r["persen_benar"],
+            "materi": r["soal"].materi or "",
+            "ringkas": r["soal"].ringkas_pertanyaan,
+            "status": status,
+        }
+        if status["kelompok"] == "layak":
+            b["jml_layak"] += 1
+            b["daftar_layak"].append(ringkas)
+        elif status["kelompok"] == "perbaiki":
+            b["jml_perbaiki"] += 1
+            b["daftar_perbaiki"].append(ringkas)
+        else:
+            b["jml_belum"] += 1
+            b["daftar_belum"].append(ringkas)
+
+        if r["persen_benar"] is not None:
+            b["_persen_list"].append(r["persen_benar"])
+            mudah = b["soal_termudah"]
+            sulit = b["soal_tersulit"]
+            if mudah is None or r["persen_benar"] > mudah["persen_benar"]:
+                b["soal_termudah"] = r
+            if sulit is None or r["persen_benar"] < sulit["persen_benar"]:
+                b["soal_tersulit"] = r
+
+    def _finalize(b):
+        persen = b.pop("_persen_list")
+        b["rata_persen_benar"] = (
+            round(sum(persen) / len(persen), 1) if persen else None
+        )
+        b["persen_benar_keseluruhan"] = (
+            round((b["total_benar"] / b["total_jawab"]) * 100, 1)
+            if b["total_jawab"]
+            else None
+        )
+        b["nomor_layak"] = ", ".join(str(s["no"]) for s in b["daftar_layak"]) or "—"
+        b["nomor_perbaiki"] = ", ".join(str(s["no"]) for s in b["daftar_perbaiki"]) or "—"
+        b["nomor_belum"] = ", ".join(str(s["no"]) for s in b["daftar_belum"]) or "—"
+        if b["jml_perbaiki"] == 0 and b["jml_layak"] > 0 and b["jml_belum"] == 0:
+            b["kesimpulan"] = (
+                f"Semua soal layak dipakai (No. {b['nomor_layak']})."
+            )
+        elif b["jml_perbaiki"] > 0 and b["jml_layak"] == 0 and b["jml_belum"] == 0:
+            b["kesimpulan"] = (
+                f"Seluruh soal perlu diperbaiki (No. {b['nomor_perbaiki']})."
+            )
+        elif b["jml_perbaiki"] > 0:
+            b["kesimpulan"] = (
+                f"Layak: No. {b['nomor_layak']}. "
+                f"Perlu diperbaiki: No. {b['nomor_perbaiki']}."
+                + (
+                    f" Belum dinilai: No. {b['nomor_belum']}."
+                    if b["jml_belum"]
+                    else ""
+                )
+            )
+        elif b["jml_belum"] > 0:
+            b["kesimpulan"] = (
+                f"Layak: No. {b['nomor_layak']}. "
+                f"Belum dinilai: No. {b['nomor_belum']}."
+            )
+        else:
+            b["kesimpulan"] = "Belum ada soal teranalisis."
+        return b
+
+    hasil = []
+    urutan = [k for k, _ in KELAS_CHOICES]
+    for kode in urutan:
+        if kode not in bucket:
+            continue
+        hasil.append(_finalize(bucket.pop(kode)))
+    for _kode, b in bucket.items():
+        hasil.append(_finalize(b))
+    return hasil
 
 
 def daftar_kisi_kisi(kelas: str = ""):
@@ -446,7 +614,12 @@ def role_required(*roles):
         def wrapped(*args, **kwargs):
             if not current_user.is_authenticated:
                 return redirect(url_for("auth.login"))
-            if current_user.role not in roles:
+            boleh = getattr(current_user, "punya_peran", None)
+            if callable(boleh):
+                ok = boleh(*roles)
+            else:
+                ok = current_user.role in roles
+            if not ok:
                 abort(403)
             if not current_user.is_active_user:
                 flash("Akun Anda nonaktif.", "danger")
@@ -461,9 +634,9 @@ def role_required(*roles):
 def redirect_by_role(user):
     if user.role == "admin":
         return redirect(url_for("admin.dashboard"))
-    if user.role == "guru":
+    if getattr(user, "is_guru_penguji", False) or user.role == "guru":
         return redirect(url_for("guru.dashboard"))
-    if user.role == "guru_soal":
+    if getattr(user, "is_guru_pembuat_soal", False) or user.role == "guru_soal":
         return redirect(url_for("guru_soal.soal_list"))
     if user.role == "orang_tua":
         return redirect(url_for("ortu.dashboard"))

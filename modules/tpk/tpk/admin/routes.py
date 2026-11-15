@@ -26,7 +26,11 @@ from tpk.soal_import import baca_soal_file, buat_blanko_soal_xlsx, impor_soal_te
 from tpk.utils import (
     DEFAULT_PASSWORD_MURID,
     DEFAULT_PASSWORD_ORTU,
+    ANALISIS_MIN_JAWAB,
+    ANALISIS_P_MAX,
+    ANALISIS_P_MIN,
     analisis_soal_tes,
+    rekap_analisis_soal_per_kelas,
     buat_username_dari_nama,
     daftar_kisi_kisi,
     get_bobot_penilaian,
@@ -578,24 +582,48 @@ def guru_list():
         username = request.form.get("username", "").strip().lower()
         nama = request.form.get("nama_lengkap", "").strip()
         kelas = request.form.get("kelas_penguji")
-        password = request.form.get("password", "guru123")
+        password = request.form.get("password", "guru123") or "guru123"
+        juga_soal = request.form.get("juga_pembuat_soal") == "1"
 
         if not username or not nama or kelas not in dict(KELAS_CHOICES):
             flash("Data guru tidak lengkap.", "danger")
-        elif User.query.filter_by(username=username).first():
-            flash("Username sudah dipakai.", "danger")
         else:
-            guru = User(
-                username=username,
-                nama_lengkap=nama,
-                email=None,
-                role="guru",
-                kelas_penguji=kelas,
-            )
-            guru.set_password(password)
-            db.session.add(guru)
-            db.session.commit()
-            flash("Guru penguji berhasil ditambahkan.", "success")
+            existing = User.query.filter_by(username=username).first()
+            if existing and existing.role == "guru_soal":
+                existing.role = "guru"
+                existing.juga_pembuat_soal = True
+                existing.nama_lengkap = nama
+                existing.kelas_penguji = kelas
+                existing.set_password(password)
+                existing.is_active_user = True
+                db.session.commit()
+                flash(
+                    "Akun pembuat soal dilengkapi sebagai guru penguji "
+                    "(username & password sama).",
+                    "success",
+                )
+            elif existing:
+                flash("Username sudah dipakai.", "danger")
+            else:
+                guru = User(
+                    username=username,
+                    nama_lengkap=nama,
+                    email=None,
+                    role="guru",
+                    kelas_penguji=kelas,
+                    juga_pembuat_soal=juga_soal,
+                )
+                guru.set_password(password)
+                db.session.add(guru)
+                db.session.commit()
+                if juga_soal:
+                    flash(
+                        "Guru penguji ditambahkan dan bisa login ke bank soal "
+                        "dengan username/password yang sama.",
+                        "success",
+                    )
+                else:
+                    flash("Guru penguji berhasil ditambahkan.", "success")
         return redirect(url_for("admin.guru_list"))
 
     items = User.query.filter_by(role="guru").order_by(User.nama_lengkap).all()
@@ -620,7 +648,10 @@ def guru_toggle(user_id):
 @login_required
 @role_required("admin")
 def guru_soal_list():
-    """Akun guru pembuat soal: satu kelas tugas, hanya akses bank soal kelas itu."""
+    """Akun guru pembuat soal: satu kelas tugas, hanya akses bank soal kelas itu.
+
+    Username boleh sama dengan guru penguji — akses digabung ke akun yang sama.
+    """
     if request.method == "POST":
         username = request.form.get("username", "").strip().lower()
         nama = request.form.get("nama_lengkap", "").strip()
@@ -629,28 +660,47 @@ def guru_soal_list():
 
         if not username or not nama or kelas not in dict(KELAS_CHOICES):
             flash("Lengkapi username, nama, dan kelas soal yang ditugaskan.", "danger")
-        elif User.query.filter_by(username=username).first():
-            flash("Username sudah dipakai.", "danger")
         else:
-            user = User(
-                username=username,
-                nama_lengkap=nama,
-                email=None,
-                role="guru_soal",
-                kelas_penguji=kelas,
-            )
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-            flash(
-                f"Guru pembuat soal {dict(KELAS_CHOICES)[kelas]} ditambahkan. "
-                f"Login: {username} / {password}",
-                "success",
-            )
+            existing = User.query.filter_by(username=username).first()
+            if existing and existing.role == "guru":
+                existing.juga_pembuat_soal = True
+                existing.nama_lengkap = nama or existing.nama_lengkap
+                existing.kelas_penguji = kelas
+                existing.set_password(password)
+                existing.is_active_user = True
+                db.session.commit()
+                flash(
+                    f"Akses pembuat soal ditambahkan ke akun guru penguji "
+                    f"{username} (password ikut diperbarui).",
+                    "success",
+                )
+            elif existing:
+                flash("Username sudah dipakai.", "danger")
+            else:
+                user = User(
+                    username=username,
+                    nama_lengkap=nama,
+                    email=None,
+                    role="guru_soal",
+                    kelas_penguji=kelas,
+                )
+                user.set_password(password)
+                db.session.add(user)
+                db.session.commit()
+                flash(
+                    f"Guru pembuat soal {dict(KELAS_CHOICES)[kelas]} ditambahkan. "
+                    f"Login: {username} / {password}",
+                    "success",
+                )
         return redirect(url_for("admin.guru_soal_list"))
 
     items = (
-        User.query.filter_by(role="guru_soal")
+        User.query.filter(
+            db.or_(
+                User.role == "guru_soal",
+                db.and_(User.role == "guru", User.juga_pembuat_soal.is_(True)),
+            )
+        )
         .order_by(User.kelas_penguji, User.nama_lengkap)
         .all()
     )
@@ -666,12 +716,16 @@ def guru_soal_list():
 @role_required("admin")
 def guru_soal_toggle(user_id):
     user = User.query.get_or_404(user_id)
-    if user.role != "guru_soal":
-        flash("Bukan akun guru pembuat soal.", "danger")
-    else:
+    if user.role == "guru" and user.juga_pembuat_soal:
+        user.juga_pembuat_soal = False
+        db.session.commit()
+        flash("Akses pembuat soal pada akun guru penguji dinonaktifkan.", "success")
+    elif user.role == "guru_soal":
         user.is_active_user = not user.is_active_user
         db.session.commit()
         flash("Status akun diperbarui.", "success")
+    else:
+        flash("Bukan akun guru pembuat soal.", "danger")
     return redirect(url_for("admin.guru_soal_list"))
 
 
@@ -679,15 +733,16 @@ def guru_soal_toggle(user_id):
 @login_required
 @role_required("admin")
 def soal_list():
-    from tpk.media import simpan_gambar_base64, simpan_gambar_file
+    from tpk.media import (
+        lengkapi_teks_opsi,
+        proses_gambar_opsi,
+        simpan_gambar_base64,
+        simpan_gambar_file,
+    )
 
     if request.method == "POST":
         kelas_tujuan = request.form.get("kelas_tujuan")
         pertanyaan = request.form.get("pertanyaan", "").strip()
-        opsi_a = request.form.get("opsi_a", "").strip()
-        opsi_b = request.form.get("opsi_b", "").strip()
-        opsi_c = request.form.get("opsi_c", "").strip()
-        opsi_d = request.form.get("opsi_d", "").strip()
         jawaban_benar = request.form.get("jawaban_benar", "A").upper()
         bobot = int(request.form.get("bobot") or 1)
         gambar_path = None
@@ -696,33 +751,42 @@ def soal_list():
                 gambar_path = simpan_gambar_file(request.files["gambar_file"])
             elif request.form.get("gambar_paste"):
                 gambar_path = simpan_gambar_base64(request.form.get("gambar_paste"))
+            gambar_opsi = proses_gambar_opsi(request)
         except ValueError as exc:
             flash(str(exc), "danger")
             return redirect(url_for("admin.soal_list", kelas=kelas_tujuan or None))
 
+        opsi = {
+            h: lengkapi_teks_opsi(request.form.get(f"opsi_{h}", ""), gambar_opsi.get(h), h)
+            for h in ("a", "b", "c", "d")
+        }
         if not pertanyaan and gambar_path:
             pertanyaan = "Lihat gambar soal"
         if kelas_tujuan not in dict(KELAS_CHOICES) or not pertanyaan:
             flash("Lengkapi kelas, pertanyaan (atau gambar), dan opsi A–D.", "danger")
             return redirect(url_for("admin.soal_list", kelas=kelas_tujuan or None))
-        if not all([opsi_a, opsi_b, opsi_c, opsi_d]) or jawaban_benar not in "ABCD":
-            flash("Opsi A–D dan jawaban benar wajib diisi.", "danger")
+        if not all(opsi.values()) or jawaban_benar not in "ABCD":
+            flash("Tiap opsi A–D wajib teks atau gambar.", "danger")
             return redirect(url_for("admin.soal_list", kelas=kelas_tujuan or None))
 
         soal = SoalTes(
             kelas_tujuan=kelas_tujuan,
             pertanyaan=pertanyaan,
             gambar=gambar_path,
-            opsi_a=opsi_a,
-            opsi_b=opsi_b,
-            opsi_c=opsi_c,
-            opsi_d=opsi_d,
+            opsi_a=opsi["a"],
+            opsi_b=opsi["b"],
+            opsi_c=opsi["c"],
+            opsi_d=opsi["d"],
+            gambar_opsi_a=gambar_opsi.get("a"),
+            gambar_opsi_b=gambar_opsi.get("b"),
+            gambar_opsi_c=gambar_opsi.get("c"),
+            gambar_opsi_d=gambar_opsi.get("d"),
             jawaban_benar=jawaban_benar,
             bobot=bobot,
         )
         db.session.add(soal)
         db.session.commit()
-        flash("Soal berhasil ditambahkan (teks Arab/gambar didukung).", "success")
+        flash("Soal berhasil ditambahkan (teks/gambar soal & opsi didukung).", "success")
         return redirect(url_for("admin.soal_list", kelas=soal.kelas_tujuan))
 
     kelas = request.args.get("kelas", "")
@@ -804,16 +868,18 @@ def soal_toggle(soal_id):
 @role_required("admin")
 def soal_edit(soal_id):
     """Edit soal: teks Arab, opsi, dan gambar (upload / tempel snipping tool)."""
-    from tpk.media import hapus_gambar_soal, simpan_gambar_base64, simpan_gambar_file
+    from tpk.media import (
+        hapus_gambar_soal,
+        lengkapi_teks_opsi,
+        proses_gambar_opsi,
+        simpan_gambar_base64,
+        simpan_gambar_file,
+    )
 
     soal = SoalTes.query.get_or_404(soal_id)
     if request.method == "POST":
         soal.kelas_tujuan = request.form.get("kelas_tujuan") or soal.kelas_tujuan
         pertanyaan = request.form.get("pertanyaan", "").strip()
-        soal.opsi_a = request.form.get("opsi_a", "").strip()
-        soal.opsi_b = request.form.get("opsi_b", "").strip()
-        soal.opsi_c = request.form.get("opsi_c", "").strip()
-        soal.opsi_d = request.form.get("opsi_d", "").strip()
         soal.jawaban_benar = request.form.get("jawaban_benar", "A").upper()
         soal.bobot = int(request.form.get("bobot") or 1)
         soal.materi = (request.form.get("materi") or "").strip() or None
@@ -836,9 +902,27 @@ def soal_edit(soal_id):
                 if baru:
                     hapus_gambar_soal(soal.gambar)
                     soal.gambar = baru
+            gambar_opsi = proses_gambar_opsi(
+                request,
+                {
+                    "a": soal.gambar_opsi_a,
+                    "b": soal.gambar_opsi_b,
+                    "c": soal.gambar_opsi_c,
+                    "d": soal.gambar_opsi_d,
+                },
+            )
         except ValueError as exc:
             flash(str(exc), "danger")
             return redirect(url_for("admin.soal_edit", soal_id=soal.id))
+
+        soal.gambar_opsi_a = gambar_opsi.get("a")
+        soal.gambar_opsi_b = gambar_opsi.get("b")
+        soal.gambar_opsi_c = gambar_opsi.get("c")
+        soal.gambar_opsi_d = gambar_opsi.get("d")
+        soal.opsi_a = lengkapi_teks_opsi(request.form.get("opsi_a", ""), soal.gambar_opsi_a, "a")
+        soal.opsi_b = lengkapi_teks_opsi(request.form.get("opsi_b", ""), soal.gambar_opsi_b, "b")
+        soal.opsi_c = lengkapi_teks_opsi(request.form.get("opsi_c", ""), soal.gambar_opsi_c, "c")
+        soal.opsi_d = lengkapi_teks_opsi(request.form.get("opsi_d", ""), soal.gambar_opsi_d, "d")
 
         if not pertanyaan and soal.gambar:
             pertanyaan = "Lihat gambar soal"
@@ -846,7 +930,7 @@ def soal_edit(soal_id):
             flash("Pertanyaan (atau gambar) dan kelas wajib diisi.", "danger")
             return redirect(url_for("admin.soal_edit", soal_id=soal.id))
         if not all([soal.opsi_a, soal.opsi_b, soal.opsi_c, soal.opsi_d]):
-            flash("Opsi A–D wajib diisi (boleh huruf Arab).", "danger")
+            flash("Tiap opsi A–D wajib teks atau gambar.", "danger")
             return redirect(url_for("admin.soal_edit", soal_id=soal.id))
 
         soal.pertanyaan = pertanyaan
@@ -1283,21 +1367,28 @@ def tes_cetak_hasil():
 @login_required
 @role_required("admin")
 def analisis_soal():
-    """Analisis tingkat kebenaran & sebaran jawaban per soal."""
+    """Analisis tingkat kebenaran & sebaran jawaban per soal + rekap per kelas."""
     tahun = get_tahun_ajaran()
     gelombang = normalisasi_gelombang(
         request.args.get("gelombang") or get_gelombang_aktif()
     )
     kelas = request.args.get("kelas") or ""
     rows = analisis_soal_tes(tahun, gelombang, kelas)
+    rekap_kelas = rekap_analisis_soal_per_kelas(rows)
     return render_template(
         "admin/analisis_soal.html",
         rows=rows,
+        rekap_kelas=rekap_kelas,
         gelombang=gelombang,
         kelas=kelas,
         daftar_gelombang=get_daftar_gelombang(),
         kelas_choices=KELAS_CHOICES,
         tahun_ajaran=tahun,
+        kriteria={
+            "min_jawab": ANALISIS_MIN_JAWAB,
+            "p_min": ANALISIS_P_MIN,
+            "p_max": ANALISIS_P_MAX,
+        },
     )
 
 
@@ -1806,17 +1897,33 @@ def pengguna_cetak_akun():
     rows = []
     if role in dict(CETAK_AKUN_ROLES):
         if role in ("guru", "guru_soal"):
-            users = (
-                User.query.filter_by(role=role)
-                .order_by(User.kelas_penguji.asc(), User.nama_lengkap.asc())
-                .all()
-            )
+            if role == "guru_soal":
+                users = (
+                    User.query.filter(
+                        db.or_(
+                            User.role == "guru_soal",
+                            db.and_(User.role == "guru", User.juga_pembuat_soal.is_(True)),
+                        )
+                    )
+                    .order_by(User.kelas_penguji.asc(), User.nama_lengkap.asc())
+                    .all()
+                )
+            else:
+                users = (
+                    User.query.filter_by(role=role)
+                    .order_by(User.kelas_penguji.asc(), User.nama_lengkap.asc())
+                    .all()
+                )
             for u in users:
                 detail = u.kelas_label
                 if role == "guru_soal":
                     detail = f"Kelas soal: {u.kelas_label}"
+                    if u.role == "guru":
+                        detail += " · gabung penguji"
                 elif role == "guru":
                     detail = f"Kelas penguji: {u.kelas_label}"
+                    if u.juga_pembuat_soal:
+                        detail += " · juga pembuat soal"
                 rows.append(
                     {
                         "nama": u.nama_lengkap,

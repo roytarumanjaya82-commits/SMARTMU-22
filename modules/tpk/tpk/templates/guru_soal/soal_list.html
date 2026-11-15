@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "shared/_opsi_gambar_fields.html" import opsi_fields %}
 {% block title %}Bank Soal {{ kelas_label }}{% endblock %}
 {% block content %}
 <section class="page">
@@ -60,10 +61,7 @@
               </div>
               <div id="pastePreview" class="soal-gambar-preview" hidden></div>
             </div>
-            <div><label>Opsi A</label><input name="opsi_a" class="arabic-field" dir="auto" required></div>
-            <div><label>Opsi B</label><input name="opsi_b" class="arabic-field" dir="auto" required></div>
-            <div><label>Opsi C</label><input name="opsi_c" class="arabic-field" dir="auto" required></div>
-            <div><label>Opsi D</label><input name="opsi_d" class="arabic-field" dir="auto" required></div>
+            {{ opsi_fields() }}
             <div>
               <label>Jawaban Benar</label>
               <select name="jawaban_benar">

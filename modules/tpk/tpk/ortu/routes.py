@@ -125,20 +125,4 @@ def laporan_gabungan():
 @login_required
 @role_required("orang_tua")
 def ganti_password():
-    if request.method == "POST":
-        lama = request.form.get("password_lama") or ""
-        baru = (request.form.get("password_baru") or "").strip()
-        ulang = (request.form.get("password_ulang") or "").strip()
-
-        if not current_user.check_password(lama):
-            flash("Password lama tidak sesuai.", "danger")
-        elif len(baru) < 4:
-            flash("Password baru minimal 4 karakter.", "danger")
-        elif baru != ulang:
-            flash("Konfirmasi password baru tidak sama.", "danger")
-        else:
-            current_user.set_password(baru)
-            db.session.commit()
-            flash("Password berhasil diganti.", "success")
-            return redirect(url_for("ortu.dashboard"))
-    return render_template("ortu/password.html")
+    return redirect(url_for("auth.ganti_password"))

@@ -40,6 +40,17 @@ def sync_schema():
                 )
             )
             db.session.commit()
+        for kolom in ("gambar_opsi_a", "gambar_opsi_b", "gambar_opsi_c", "gambar_opsi_d"):
+            if kolom not in cols:
+                try:
+                    db.session.execute(
+                        text(f"ALTER TABLE soal_tes ADD COLUMN {kolom} VARCHAR(255) NULL")
+                    )
+                    db.session.commit()
+                except Exception:  # noqa: BLE001
+                    db.session.rollback()
+                else:
+                    cols.add(kolom)
         # Perpanjang opsi agar muat teks Arab / kalimat panjang
         for col_name in ("opsi_a", "opsi_b", "opsi_c", "opsi_d"):
             try:
@@ -173,6 +184,20 @@ def sync_schema():
                         "ALTER TABLE kunci_tes_gelombang "
                         "ADD UNIQUE KEY uq_kunci_tes_tahun_gelombang_jenis "
                         "(tahun_ajaran, gelombang, jenis)"
+                    )
+                )
+                db.session.commit()
+            except Exception:  # noqa: BLE001
+                db.session.rollback()
+
+    if "users" in tables:
+        cols = {c["name"] for c in inspector.get_columns("users")}
+        if "juga_pembuat_soal" not in cols:
+            try:
+                db.session.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN juga_pembuat_soal "
+                        "TINYINT(1) NOT NULL DEFAULT 0"
                     )
                 )
                 db.session.commit()

@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% from "shared/_opsi_gambar_fields.html" import opsi_fields %}
 {% block title %}Edit Soal {{ kelas_label }}{% endblock %}
 {% block content %}
 <section class="page">
   <div class="container narrow">
     <h1 class="page-title">Edit Soal · {{ kelas_label }}</h1>
-    <p class="page-sub">Kelas soal terkunci ke tugas Anda. Ubah teks/gambar saja.</p>
+    <p class="page-sub">Kelas soal terkunci ke tugas Anda. Ubah teks/gambar soal dan opsi.</p>
 
     <form class="panel" method="post" enctype="multipart/form-data" id="formTambahSoal">
       <input type="hidden" name="gambar_paste" id="gambarPaste">
@@ -32,10 +33,7 @@
           <div class="paste-zone" id="pasteZone" tabindex="0">Tempel gambar di sini (Ctrl+V)</div>
           <div id="pastePreview" class="soal-gambar-preview" hidden></div>
         </div>
-        <div><label>Opsi A</label><input name="opsi_a" class="arabic-field" dir="auto" value="{{ soal.opsi_a }}" required></div>
-        <div><label>Opsi B</label><input name="opsi_b" class="arabic-field" dir="auto" value="{{ soal.opsi_b }}" required></div>
-        <div><label>Opsi C</label><input name="opsi_c" class="arabic-field" dir="auto" value="{{ soal.opsi_c }}" required></div>
-        <div><label>Opsi D</label><input name="opsi_d" class="arabic-field" dir="auto" value="{{ soal.opsi_d }}" required></div>
+        {{ opsi_fields(soal) }}
         <div>
           <label>Jawaban Benar</label>
           <select name="jawaban_benar">

@@ -74,7 +74,8 @@ def create_app(config_class=Config):
             return None
 
         if cegah_ubah is not None and session.get("dari_portal"):
-            tertahan = cegah_ubah(request, {"auth.login", "main.index"})
+            # Izinkan ganti password sendiri meski masuk lewat SSO portal
+            tertahan = cegah_ubah(request, {"auth.login", "auth.ganti_password", "main.index"})
             if tertahan is not None:
                 return tertahan
 

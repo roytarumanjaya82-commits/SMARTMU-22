@@ -446,18 +446,23 @@ def seed_initial_data():
         ("guru_reguler", "Guru Penguji Reguler", "reguler", "guru.reguler@smartmu22.sch.id"),
     ]
     for username, nama, kelas, email in guru_seed:
-        if not User.query.filter_by(username=username).first():
+        row = User.query.filter_by(username=username).first()
+        if not row:
             guru = User(
                 username=username,
                 nama_lengkap=nama,
                 email=email,
                 role="guru",
                 kelas_penguji=kelas,
+                juga_pembuat_soal=True,
             )
             guru.set_password("guru123")
             db.session.add(guru)
+        elif row.role == "guru" and not row.juga_pembuat_soal:
+            # Satu username/password untuk penguji + pembuat soal
+            row.juga_pembuat_soal = True
 
-    # Guru pembuat soal: hanya akses bank soal kelas yang ditugaskan
+    # Akun khusus soal_* (opsional, instal lama). Instal baru memakai guru_* ganda.
     guru_soal_seed = [
         ("soal_olimpiade", "Pembuat Soal Olimpiade", "olimpiade", "soal.olimpiade@smartmu22.sch.id"),
         ("soal_tahfidz", "Pembuat Soal Tahfidz", "tahfidz", "soal.tahfidz@smartmu22.sch.id"),
@@ -467,6 +472,11 @@ def seed_initial_data():
     ]
     for username, nama, kelas, email in guru_soal_seed:
         if not User.query.filter_by(username=username).first():
+            # Jangan buat jika sudah ada guru_* untuk kelas yang sama dengan akses soal
+            pasangan = f"guru_{kelas}"
+            guru_kelas = User.query.filter_by(username=pasangan, role="guru").first()
+            if guru_kelas and guru_kelas.juga_pembuat_soal:
+                continue
             gs = User(
                 username=username,
                 nama_lengkap=nama,

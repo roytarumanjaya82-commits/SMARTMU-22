@@ -58,14 +58,17 @@
         <a class="nav-item {% if request.endpoint == 'admin.pengguna_cetak_akun' %}active{% endif %}" href="{{ url_for('admin.pengguna_cetak_akun') }}">Cetak Akun</a>
         <a class="nav-item {% if request.endpoint and request.endpoint.startswith('admin.backup') %}active{% endif %}" href="{{ url_for('admin.backup_database') }}">Backup Database</a>
         <a class="nav-item {% if request.endpoint == 'admin.pengaturan' %}active{% endif %}" href="{{ url_for('admin.pengaturan') }}">Pengaturan</a>
-      {% elif current_user.role == 'guru' %}
+      {% elif current_user.is_guru_penguji or current_user.is_guru_pembuat_soal %}
+          {% if current_user.is_guru_penguji %}
           <div class="nav-section">Menu Guru Penguji</div>
           <a class="nav-item {% if request.endpoint == 'guru.dashboard' %}active{% endif %}" href="{{ url_for('guru.dashboard') }}">Dashboard</a>
           <a class="nav-item {% if request.endpoint in ['guru.soal_wawancara', 'guru.penilaian_list', 'guru.nilai_murid'] %}active{% endif %}" href="{{ url_for('guru.soal_wawancara') }}">Sesi Wawancara</a>
           <a class="nav-item {% if request.endpoint == 'guru.hasil' %}active{% endif %}" href="{{ url_for('guru.hasil') }}">Hasil Penilaian</a>
-      {% elif current_user.role == 'guru_soal' %}
+          {% endif %}
+          {% if current_user.is_guru_pembuat_soal %}
           <div class="nav-section">Menu Pembuat Soal</div>
           <a class="nav-item {% if request.endpoint and request.endpoint.startswith('guru_soal.') %}active{% endif %}" href="{{ url_for('guru_soal.soal_list') }}">Bank Soal {{ current_user.kelas_label }}</a>
+          {% endif %}
       {% elif current_user.role == 'orang_tua' %}
         <div class="nav-section">Menu Orang Tua</div>
         <a class="nav-item {% if request.endpoint == 'ortu.dashboard' %}active{% endif %}" href="{{ url_for('ortu.dashboard') }}">Dashboard</a>
@@ -73,7 +76,6 @@
         <a class="nav-item {% if request.endpoint == 'ortu.kisi_kisi' %}active{% endif %}" href="{{ url_for('ortu.kisi_kisi') }}">Kisi-kisi Soal</a>
         <a class="nav-item {% if request.endpoint == 'ortu.laporan_wawancara' %}active{% endif %}" href="{{ url_for('ortu.laporan_wawancara') }}">Wawancara</a>
         <a class="nav-item {% if request.endpoint in ['ortu.laporan', 'ortu.laporan_gabungan'] %}active{% endif %}" href="{{ url_for('ortu.laporan_gabungan') }}">Hasil Gabungan</a>
-        <a class="nav-item {% if request.endpoint == 'ortu.ganti_password' %}active{% endif %}" href="{{ url_for('ortu.ganti_password') }}">Ganti Password</a>
       {% else %}
         <div class="nav-section">Menu Murid</div>
         <a class="nav-item {% if request.endpoint == 'murid.dashboard' %}active{% endif %}" href="{{ url_for('murid.dashboard') }}">Dashboard</a>
@@ -84,6 +86,8 @@
         <a class="nav-item {% if request.endpoint == 'murid.hasil_wawancara' %}active{% endif %}" href="{{ url_for('murid.hasil_wawancara') }}">Hasil Wawancara</a>
         <a class="nav-item {% if request.endpoint in ['murid.hasil', 'murid.hasil_gabungan'] %}active{% endif %}" href="{{ url_for('murid.hasil_gabungan') }}">Hasil Gabungan</a>
       {% endif %}
+      <div class="nav-section">Akun</div>
+      <a class="nav-item {% if request.endpoint == 'auth.ganti_password' %}active{% endif %}" href="{{ url_for('auth.ganti_password') }}">Ganti Password</a>
     </nav>
 
     <div class="sidebar-footer">

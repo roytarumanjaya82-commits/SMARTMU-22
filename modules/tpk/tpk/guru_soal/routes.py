@@ -55,11 +55,9 @@ def soal_list():
         )
 
     if request.method == "POST":
+        from tpk.media import lengkapi_teks_opsi, proses_gambar_opsi
+
         pertanyaan = request.form.get("pertanyaan", "").strip()
-        opsi_a = request.form.get("opsi_a", "").strip()
-        opsi_b = request.form.get("opsi_b", "").strip()
-        opsi_c = request.form.get("opsi_c", "").strip()
-        opsi_d = request.form.get("opsi_d", "").strip()
         jawaban_benar = request.form.get("jawaban_benar", "A").upper()
         bobot = int(request.form.get("bobot") or 1)
         gambar_path = None
@@ -68,27 +66,36 @@ def soal_list():
                 gambar_path = simpan_gambar_file(request.files["gambar_file"])
             elif request.form.get("gambar_paste"):
                 gambar_path = simpan_gambar_base64(request.form.get("gambar_paste"))
+            gambar_opsi = proses_gambar_opsi(request)
         except ValueError as exc:
             flash(str(exc), "danger")
             return redirect(url_for("guru_soal.soal_list"))
 
+        opsi = {
+            h: lengkapi_teks_opsi(request.form.get(f"opsi_{h}", ""), gambar_opsi.get(h), h)
+            for h in ("a", "b", "c", "d")
+        }
         if not pertanyaan and gambar_path:
             pertanyaan = "Lihat gambar soal"
         if not pertanyaan:
             flash("Isi pertanyaan atau tempel/upload gambar soal.", "danger")
             return redirect(url_for("guru_soal.soal_list"))
-        if not all([opsi_a, opsi_b, opsi_c, opsi_d]) or jawaban_benar not in "ABCD":
-            flash("Opsi A–D dan jawaban benar wajib diisi.", "danger")
+        if not all(opsi.values()) or jawaban_benar not in "ABCD":
+            flash("Tiap opsi A–D wajib teks atau gambar.", "danger")
             return redirect(url_for("guru_soal.soal_list"))
 
         soal = SoalTes(
             kelas_tujuan=kelas,
             pertanyaan=pertanyaan,
             gambar=gambar_path,
-            opsi_a=opsi_a,
-            opsi_b=opsi_b,
-            opsi_c=opsi_c,
-            opsi_d=opsi_d,
+            opsi_a=opsi["a"],
+            opsi_b=opsi["b"],
+            opsi_c=opsi["c"],
+            opsi_d=opsi["d"],
+            gambar_opsi_a=gambar_opsi.get("a"),
+            gambar_opsi_b=gambar_opsi.get("b"),
+            gambar_opsi_c=gambar_opsi.get("c"),
+            gambar_opsi_d=gambar_opsi.get("d"),
             jawaban_benar=jawaban_benar,
             bobot=bobot,
         )
@@ -185,7 +192,13 @@ def soal_toggle(soal_id):
 @login_required
 @role_required("guru_soal")
 def soal_edit(soal_id):
-    from tpk.media import hapus_gambar_soal, simpan_gambar_base64, simpan_gambar_file
+    from tpk.media import (
+        hapus_gambar_soal,
+        lengkapi_teks_opsi,
+        proses_gambar_opsi,
+        simpan_gambar_base64,
+        simpan_gambar_file,
+    )
 
     soal = SoalTes.query.get_or_404(soal_id)
     if not _soal_milik_kelas(soal):
@@ -196,10 +209,6 @@ def soal_edit(soal_id):
     if request.method == "POST":
         # Kelas tidak boleh diganti ke kelas lain
         pertanyaan = request.form.get("pertanyaan", "").strip()
-        soal.opsi_a = request.form.get("opsi_a", "").strip()
-        soal.opsi_b = request.form.get("opsi_b", "").strip()
-        soal.opsi_c = request.form.get("opsi_c", "").strip()
-        soal.opsi_d = request.form.get("opsi_d", "").strip()
         soal.jawaban_benar = request.form.get("jawaban_benar", "A").upper()
         soal.bobot = int(request.form.get("bobot") or 1)
         soal.kelas_tujuan = kelas
@@ -218,9 +227,27 @@ def soal_edit(soal_id):
                 if baru:
                     hapus_gambar_soal(soal.gambar)
                     soal.gambar = baru
+            gambar_opsi = proses_gambar_opsi(
+                request,
+                {
+                    "a": soal.gambar_opsi_a,
+                    "b": soal.gambar_opsi_b,
+                    "c": soal.gambar_opsi_c,
+                    "d": soal.gambar_opsi_d,
+                },
+            )
         except ValueError as exc:
             flash(str(exc), "danger")
             return redirect(url_for("guru_soal.soal_edit", soal_id=soal.id))
+
+        soal.gambar_opsi_a = gambar_opsi.get("a")
+        soal.gambar_opsi_b = gambar_opsi.get("b")
+        soal.gambar_opsi_c = gambar_opsi.get("c")
+        soal.gambar_opsi_d = gambar_opsi.get("d")
+        soal.opsi_a = lengkapi_teks_opsi(request.form.get("opsi_a", ""), soal.gambar_opsi_a, "a")
+        soal.opsi_b = lengkapi_teks_opsi(request.form.get("opsi_b", ""), soal.gambar_opsi_b, "b")
+        soal.opsi_c = lengkapi_teks_opsi(request.form.get("opsi_c", ""), soal.gambar_opsi_c, "c")
+        soal.opsi_d = lengkapi_teks_opsi(request.form.get("opsi_d", ""), soal.gambar_opsi_d, "d")
 
         if not pertanyaan and soal.gambar:
             pertanyaan = "Lihat gambar soal"
@@ -228,7 +255,7 @@ def soal_edit(soal_id):
             flash("Pertanyaan (atau gambar) wajib diisi.", "danger")
             return redirect(url_for("guru_soal.soal_edit", soal_id=soal.id))
         if not all([soal.opsi_a, soal.opsi_b, soal.opsi_c, soal.opsi_d]):
-            flash("Opsi A–D wajib diisi.", "danger")
+            flash("Tiap opsi A–D wajib teks atau gambar.", "danger")
             return redirect(url_for("guru_soal.soal_edit", soal_id=soal.id))
         if soal.jawaban_benar not in "ABCD":
             flash("Jawaban benar harus A/B/C/D.", "danger")

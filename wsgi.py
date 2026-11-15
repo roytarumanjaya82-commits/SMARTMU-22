@@ -436,7 +436,17 @@ class BatangPortal:
         for kunci, nilai in headers:
             if kunci.lower() == "content-type":
                 jenis = nilai.lower()
-        if "text/html" in jenis and b"<body" in tubuh.lower() and b"smartmu-switch" not in tubuh:
+        # /tpk dan /pembelajaran punya sidebar sendiri — jangan sisipkan batang atas
+        lewati_batang = (
+            path.startswith("/tpk")
+            or path.startswith("/pembelajaran")
+            or b"smartmu-switch" in tubuh
+        )
+        if (
+            "text/html" in jenis
+            and b"<body" in tubuh.lower()
+            and not lewati_batang
+        ):
             awal = tubuh.lower().find(b"<body")
             selesai = tubuh.find(b">", awal)
             if selesai != -1:
@@ -472,5 +482,6 @@ aplikasi = bangun()
 
 
 if __name__ == "__main__":
-    print("SMARTMU 22 siap di http://127.0.0.1:5000")
-    run_simple("127.0.0.1", 5000, aplikasi, use_debugger=True, use_reloader=False)
+    print("SMARTMU 22 siap di http://0.0.0.0:5000 (lokal & satu WiFi)")
+    print("  Komputer ini : http://127.0.0.1:5000")
+    run_simple("0.0.0.0", 5000, aplikasi, use_debugger=True, use_reloader=False)

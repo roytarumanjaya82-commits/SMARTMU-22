@@ -39,14 +39,15 @@ a:hover { color: var(--brand-dark); }
 body.has-sidebar {
   display: block;
   background: #eef3ec;
+  padding-top: 0 !important;
 }
 
 .sidebar {
   position: fixed;
-  top: 0;
+  top: 0 !important;
   left: 0;
   width: var(--sidebar-width);
-  height: 100vh;
+  height: 100vh !important;
   background: linear-gradient(180deg, #154d2a 0%, #1f6b3a 55%, #246f40 100%);
   color: #fff;
   display: flex;
@@ -55,7 +56,6 @@ body.has-sidebar {
   box-shadow: 8px 0 30px rgba(21, 77, 42, 0.18);
   overflow-y: auto;
 }
-
 .sidebar-brand {
   display: flex;
   align-items: center;

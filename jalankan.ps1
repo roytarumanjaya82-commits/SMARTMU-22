@@ -1,4 +1,4 @@
-# Menyalakan portal SMARTMU di http://127.0.0.1:5000
+# Menyalakan portal SMARTMU di semua antarmuka (lokal + satu WiFi) port 5000
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root

@@ -1,4 +1,4 @@
-import { FILE_NAME, FOLDER_NAME, initialState, migrate } from "./model.js?v=15";
+import { FILE_NAME, FOLDER_NAME, initialState, migrate } from "./model.js?v=22";
 
 const DB_NAME = "raport-bk-smpm22";
 const LS_CLIENT = "raportbk.googleClientId";
@@ -108,6 +108,10 @@ export async function load() {
   const remoteTime = remote?.meta?.updatedAt || "";
   const pilihan = remote && remoteTime >= localTime ? remote : (saved || remote);
   state = migrate(pilihan || initialState());
+  if (state.meta?._migrasiYayasan) {
+    delete state.meta._migrasiYayasan;
+    scheduleSave();
+  }
   status.googleEmail = state.meta.googleEmail || "";
   status.googleName = state.meta.googleName || "";
   status.lastLocal = state.meta.updatedAt;

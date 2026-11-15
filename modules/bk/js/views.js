@@ -9,6 +9,7 @@ import {
   PROFIL,
   bandingKelas,
   esc,
+  kelasDiampuGuru,
   kelasIdPada,
   lihatRaport,
   namaPredikat,
@@ -16,9 +17,9 @@ import {
   siswaDiKelas,
   statistik,
   teksCatatanGuruBK,
-} from "./model.js?v=15";
-import { htmlCetak } from "./print.js?v=15";
-import { getClientId as clientTersimpan, status } from "./store.js?v=15";
+} from "./model.js?v=22";
+import { htmlCetak } from "./print.js?v=22";
+import { getClientId as clientTersimpan, status } from "./store.js?v=22";
 
 const NAV = [
   ["beranda", "Beranda"],
@@ -63,19 +64,21 @@ function kepala(judul, lead, ekstra = "") {
   return `<div class="page-head"><div><h1>${judul}</h1><p class="lead">${lead}</p></div>${ekstra}</div>`;
 }
 
-function opsiKelas(state, terpilih) {
-  return state.kelas
-    .slice()
-    .sort(bandingKelas)
+function opsiKelas(state, terpilih, { semua = false } = {}) {
+  const daftar = semua ? state.kelas.slice().sort(bandingKelas) : kelasDiampuGuru(state);
+  return daftar
     .map((k) => `<option value="${esc(k.id)}" ${k.id === terpilih ? "selected" : ""}>${esc(k.nama)}</option>`)
     .join("");
 }
 
 function chips(state, ui) {
+  const daftar = kelasDiampuGuru(state);
   if (!state.kelas.length) return `<p class="muted">Belum ada kelas. Unggah daftar murid atau tambah kelas.</p>`;
-  return `<div class="chips">${state.kelas
-    .slice()
-    .sort(bandingKelas)
+  if (!daftar.length) {
+    return `<p class="muted">Belum ada kelas diampu. Buka <a href="#/pengaturan">Pengaturan</a> lalu centang kelas yang Anda ampu.</p>`;
+  }
+  const dibatasi = (state.guru?.kelasDiampu || []).length > 0;
+  return `${dibatasi ? `<p class="kecil" style="margin:0 0 8px">Menampilkan ${daftar.length} kelas yang Anda ampu.</p>` : ""}<div class="chips">${daftar
     .map((k) => {
       const n = siswaDiKelas(state, k.id).length;
       return `<button type="button" class="chip ${k.id === ui.kelasId ? "on" : ""}" data-act="pilih-kelas" data-id="${esc(k.id)}">${esc(k.nama)} <span>${n}</span></button>`;
@@ -97,12 +100,25 @@ function pratinjauImpor(preview) {
       return `<li><strong>${esc(k)}</strong> — ${grup[k].length} murid. ${contoh}${grup[k].length > 4 ? ", dan lainnya" : ""}</li>`;
     })
     .join("");
+  const sampel = preview.siswa.slice(0, 5).map((s) => `<tr>
+      <td>${esc(s.nama)}</td>
+      <td>${esc(s.nisn || "—")}</td>
+      <td>${esc(s.nis || "—")}</td>
+      <td>${esc(s.jk || "—")}</td>
+      <td>${esc(s.noAbsen || "—")}</td>
+      <td>${esc(s.kelas)}</td>
+    </tr>`).join("");
   const gagal = preview.errors.slice(0, 8).map((e) => `<li>${esc(e)}</li>`).join("");
   return `<div class="panel" style="margin-bottom:14px">
     <h2>Pratinjau ${esc(preview.fileName)}</h2>
     <p>Daftar murid yang sekarang akan dihapus, lalu diganti dengan ${preview.siswa.length} murid dari berkas ini. Raport murid lama ikut terhapus. Nama wali kelas yang sama tetap dipakai.</p>
     <ul>${daftar || "<li>Tidak ada murid yang siap dimasukkan.</li>"}</ul>
-    ${gagal ? `<p class="kecil">Baris yang dilewati:</p><ul class="kecil">${gagal}</ul>` : ""}
+    <table class="data" style="margin-top:10px">
+      <thead><tr><th>Nama</th><th>NISN</th><th>NIS</th><th>JK</th><th>Absen</th><th>Kelas</th></tr></thead>
+      <tbody>${sampel || `<tr><td colspan="6">Tidak ada sampel.</td></tr>`}</tbody>
+    </table>
+    <p class="kecil">Jika NISN / JK / Absen masih "—", periksa baris judul kolom di Excel (NISN, Jenis Kelamin, No Absen).</p>
+    ${gagal ? `<p class="kecil">Peringatan:</p><ul class="kecil">${gagal}</ul>` : ""}
     <div class="aksi">
       <button type="button" class="btn btn-primary" data-act="impor-ya" ${preview.siswa.length ? "" : "disabled"}>Ganti daftar murid</button>
       <button type="button" class="btn" data-act="impor-batal">Batalkan</button>
@@ -172,7 +188,7 @@ function murid(state, ui) {
         <td><input data-siswa="${esc(s.id)}" data-field="nisn" value="${esc(s.nisn)}" autocomplete="off"></td>
         <td><select data-siswa="${esc(s.id)}" data-field="jk"><option value=""></option><option value="L" ${s.jk === "L" ? "selected" : ""}>L</option><option value="P" ${s.jk === "P" ? "selected" : ""}>P</option></select></td>
         <td><input data-siswa="${esc(s.id)}" data-field="noAbsen" value="${esc(s.noAbsen)}" autocomplete="off"></td>
-        <td><select data-siswa="${esc(s.id)}" data-field="kelasId">${opsiKelas(state, kelasIdPada(state, s))}</select></td>
+        <td><select data-siswa="${esc(s.id)}" data-field="kelasId">${opsiKelas(state, kelasIdPada(state, s), { semua: true })}</select></td>
         <td class="aksi">
           <button type="button" class="btn btn-kecil" data-act="detail-siswa" data-id="${esc(s.id)}">${buka ? "Tutup" : "Detail"}</button>
           <button type="button" class="btn btn-kecil" data-act="cetak-siswa" data-id="${esc(s.id)}">Cetak</button>
@@ -352,15 +368,23 @@ function formLayanan(state, draft) {
       <label class="field"><span>Bidang</span><select data-draft="bidang">${BIDANG.map((b) => `<option value="${b.id}" ${draft.bidang === b.id ? "selected" : ""}>${esc(b.nama)}</option>`).join("")}</select></label>
       <label class="field"><span>Kelas</span><select data-draft="kelasId"><option value="">Pilih kelas</option>${opsiKelas(state, draft.kelasId)}</select></label>
     </div>
-    <div class="cek"><label class="cek"><input type="radio" name="sasaran" data-draft="sasaran" value="kelas" ${draft.sasaran === "kelas" ? "checked" : ""}> Seluruh kelas saat ini</label>
-    <label class="cek"><input type="radio" name="sasaran" data-draft="sasaran" value="siswa" ${draft.sasaran === "siswa" ? "checked" : ""}> Murid tertentu</label></div>
-    ${draft.sasaran === "siswa" ? `<div class="aksi"><button type="button" class="btn btn-kecil" data-act="pilih-semua">Pilih semua murid kelas</button></div><div class="dua">${cekMurid || `<p class="muted">Kelas belum memiliki murid.</p>`}</div>` : ""}
+    <div class="cek-baris">
+      <label class="cek"><input type="radio" name="sasaran" data-draft="sasaran" value="kelas" ${draft.sasaran === "kelas" ? "checked" : ""}> Seluruh kelas saat ini</label>
+      <label class="cek"><input type="radio" name="sasaran" data-draft="sasaran" value="siswa" ${draft.sasaran === "siswa" ? "checked" : ""}> Murid tertentu</label>
+    </div>
+    ${draft.sasaran === "siswa" ? `<div class="aksi"><button type="button" class="btn btn-kecil" data-act="pilih-semua">Pilih semua murid kelas</button></div><div class="cek-grid">${cekMurid || `<p class="muted">Kelas belum memiliki murid.</p>`}</div>` : ""}
     <label class="field"><span>Topik</span><input data-draft="topik" value="${esc(draft.topik)}" autocomplete="off"></label>
     <label class="field"><span>Tujuan</span><textarea data-draft="tujuan">${esc(draft.tujuan)}</textarea></label>
     <label class="field"><span>Catatan pelaksanaan</span><textarea data-draft="catatan">${esc(draft.catatan)}</textarea></label>
-    <div class="dua"><div><strong>Prinsip pembelajaran mendalam</strong>${cekPrinsip}</div><div><strong>Pengalaman belajar</strong>${cekPengalaman}</div></div>
-    <details><summary>Dimensi profil lulusan yang dikuatkan</summary><div class="dua">${cekDim}</div></details>
-    <label class="cek"><input type="checkbox" data-draft="rahasia" ${draft.rahasia ? "checked" : ""}> Rahasiakan isi dari raport. Pada cetakan hanya tertulis bahwa layanan individual pernah diberikan.</label>
+    <div class="dua">
+      <div class="cek-blok"><strong>Prinsip pembelajaran mendalam</strong>${cekPrinsip}</div>
+      <div class="cek-blok"><strong>Pengalaman belajar</strong>${cekPengalaman}</div>
+    </div>
+    <details class="cek-detail">
+      <summary>Dimensi profil lulusan yang dikuatkan</summary>
+      <div class="cek-grid">${cekDim}</div>
+    </details>
+    <label class="cek" style="margin-top:10px"><input type="checkbox" data-draft="rahasia" ${draft.rahasia ? "checked" : ""}> Rahasiakan isi dari raport. Pada cetakan hanya tertulis bahwa layanan individual pernah diberikan.</label>
     <div class="aksi" style="margin-top:8px">
       <button type="button" class="btn btn-primary" data-act="simpan-layanan">Simpan layanan</button>
       <button type="button" class="btn" data-act="batal-layanan">Batal</button>
@@ -457,6 +481,17 @@ function pengaturan(state, ui) {
   const s = state.sekolah;
   const g = state.guru;
   const origin = location.origin;
+  const diampu = new Set((g.kelasDiampu || []).map(String));
+  const cekKelas = state.kelas.length
+    ? `<div class="cek-grid">${state.kelas
+        .slice()
+        .sort(bandingKelas)
+        .map(
+          (k) =>
+            `<label class="cek"><input type="checkbox" data-diampu="${esc(k.id)}" ${diampu.has(String(k.id)) ? "checked" : ""}> ${esc(k.nama)}</label>`,
+        )
+        .join("")}</div>`
+    : `<p class="muted">Belum ada kelas. Unggah daftar murid dulu di menu Daftar Murid.</p>`;
   return `${kepala("Pengaturan", "Identitas ini tercetak pada kop dan tanda tangan raport.")}
     <div class="grid-2">
       <div class="card">
@@ -465,6 +500,13 @@ function pengaturan(state, ui) {
         <label class="field"><span>NBM</span><input data-bind="guru.nip" value="${esc(g.nip)}" autocomplete="off" placeholder="NBM guru BK"></label>
         <label class="field"><span>Email</span><input data-bind="guru.email" value="${esc(g.email)}" autocomplete="email"></label>
         <label class="field"><span>Jabatan pada raport</span><input data-bind="guru.jabatan" value="${esc(g.jabatan)}"></label>
+        <h2>Kelas yang diampu</h2>
+        <p class="kecil">Centang kelas yang Anda ampu. Menu Daftar Murid, Isi Raport, Layanan, dan Cetak hanya menampilkan kelas terpilih. Jika belum ada yang dicentang, semua kelas tetap tampil.</p>
+        <div class="aksi" style="margin-bottom:8px">
+          <button type="button" class="btn btn-kecil" data-act="diampu-semua">Pilih semua</button>
+          <button type="button" class="btn btn-kecil" data-act="diampu-kosong">Kosongkan</button>
+        </div>
+        ${cekKelas}
         <h2>Kepala sekolah</h2>
         <label class="field"><span>Nama</span><input data-bind="sekolah.kepalaSekolah" value="${esc(s.kepalaSekolah)}"></label>
         <label class="field"><span>NBM</span><input data-bind="sekolah.nipKepalaSekolah" value="${esc(s.nipKepalaSekolah)}" placeholder="NBM kepala sekolah"></label>
@@ -473,7 +515,7 @@ function pengaturan(state, ui) {
       <div class="card">
         <h2>Kop sekolah</h2>
         <label class="field"><span>Nama sekolah</span><input data-bind="sekolah.nama" value="${esc(s.nama)}"></label>
-        <label class="field"><span>Yayasan / persyarikatan</span><input data-bind="sekolah.yayasan" value="${esc(s.yayasan)}"></label>
+        <label class="field"><span>Baris atas kop surat</span><input data-bind="sekolah.yayasan" value="${esc(s.yayasan)}"></label>
         <label class="field"><span>NPSN</span><input data-bind="sekolah.npsn" value="${esc(s.npsn)}"></label>
         <label class="field"><span>Alamat</span><textarea data-bind="sekolah.alamat">${esc(s.alamat)}</textarea></label>
         <div class="dua">

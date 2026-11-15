@@ -8,7 +8,7 @@ export const SEKOLAH_DEFAULT = {
   telepon: "(021) 74706439",
   email: "smpmuh22pamulang@gmail.com",
   website: "www.smpm22pamulang.sch.id",
-  yayasan: "Persyarikatan Muhammadiyah",
+  yayasan: "PERGURUAN MUHAMMADIYAH SETIABUDI PAMULANG",
   kota: "Pamulang",
   kepalaSekolah: "",
   nipKepalaSekolah: "",
@@ -134,17 +134,18 @@ const PENUTUP = {
 };
 
 const HEADER_ALIAS = {
-  nisn: ["nisn"],
-  nis: ["nis", "nipd", "no induk", "nomor induk"],
-  nama: ["nama", "nama siswa", "nama lengkap", "peserta didik", "nama peserta didik"],
-  jk: ["jk", "jenis kelamin", "kelamin", "gender"],
-  kelas: ["kelas", "rombel", "rombongan belajar", "kelas/rombel"],
-  noAbsen: ["no absen", "nomor absen", "absen"],
-  tempatLahir: ["tempat lahir", "tpl", "kota lahir"],
-  tanggalLahir: ["tanggal lahir", "tgl lahir", "tanggal_lahir"],
+  // Alias lebih panjang didahulukan agar "nisn" tidak tertangkap sebagai "nis"
+  nisn: ["nisn", "no nisn", "nomor nisn", "n.i.s.n"],
+  nis: ["nis", "nipd", "no induk", "nomor induk", "no nis", "nomor nis", "n.i.s"],
+  nama: ["nama", "nama siswa", "nama lengkap", "peserta didik", "nama peserta didik", "nama murid"],
+  jk: ["jk", "jenis kelamin", "kelamin", "gender", "l/p", "lp"],
+  kelas: ["kelas", "rombel", "rombongan belajar", "kelas/rombel", "nama kelas"],
+  noAbsen: ["no absen", "nomor absen", "absen", "no. absen", "noabsen", "nomor urut", "no urut"],
+  tempatLahir: ["tempat lahir", "tpl", "kota lahir", "tempatlahir"],
+  tanggalLahir: ["tanggal lahir", "tgl lahir", "tanggal_lahir", "tgl. lahir", "lahir"],
   agama: ["agama"],
-  namaAyah: ["nama ayah", "ayah", "nama bapak", "nama orang tua"],
-  namaIbu: ["nama ibu", "ibu"],
+  namaAyah: ["nama ayah", "ayah", "nama bapak", "nama orang tua", "nama ayah/wali"],
+  namaIbu: ["nama ibu", "ibu", "nama ibu/wali"],
 };
 
 export function esc(s) {
@@ -320,6 +321,7 @@ export function initialState() {
       nip: "",
       email: "",
       jabatan: "Guru Bimbingan dan Konseling",
+      kelasDiampu: [],
     },
     periode: { tahunAjaran: "2026/2027", semester: "Ganjil" },
     kelas: [],
@@ -340,18 +342,42 @@ export function initialState() {
 export function migrate(raw) {
   const base = initialState();
   if (!raw || typeof raw !== "object") return base;
+  const sekolah = { ...base.sekolah, ...(raw.sekolah || {}) };
+  const yayasanAsli = String(sekolah.yayasan || "").trim();
+  const yayasanLama = yayasanAsli.toLowerCase();
+  if (
+    !yayasanLama ||
+    yayasanLama === "persyarikatan muhammadiyah" ||
+    yayasanLama === "persyarikatan muhamadiyah"
+  ) {
+    sekolah.yayasan = base.sekolah.yayasan;
+  }
+  const siswa = (Array.isArray(raw.siswa) ? raw.siswa : []).map((s) => ({
+    ...siswaBaru(),
+    ...(s || {}),
+    id: s?.id || uid(),
+  }));
+  const meta = { ...base.meta, ...(raw.meta || {}) };
+  if (yayasanAsli !== sekolah.yayasan) {
+    meta.updatedAt = new Date().toISOString();
+    meta._migrasiYayasan = true;
+  }
   return {
     ...base,
     ...raw,
-    sekolah: { ...base.sekolah, ...(raw.sekolah || {}) },
-    guru: { ...base.guru, ...(raw.guru || {}) },
+    sekolah,
+    guru: {
+      ...base.guru,
+      ...(raw.guru || {}),
+      kelasDiampu: Array.isArray(raw.guru?.kelasDiampu) ? raw.guru.kelasDiampu.map(String) : [],
+    },
     periode: { ...base.periode, ...(raw.periode || {}) },
     kelas: Array.isArray(raw.kelas) ? raw.kelas : [],
-    siswa: Array.isArray(raw.siswa) ? raw.siswa : [],
+    siswa,
     penempatan: raw.penempatan && typeof raw.penempatan === "object" ? raw.penempatan : {},
     layanan: Array.isArray(raw.layanan) ? raw.layanan : [],
     raport: raw.raport && typeof raw.raport === "object" ? raw.raport : {},
-    meta: { ...base.meta, ...(raw.meta || {}) },
+    meta,
     version: 1,
   };
 }
@@ -404,6 +430,17 @@ export function bandingSiswa(a, b) {
 
 export function siswaDiKelas(state, kelasId, tahun = state.periode.tahunAjaran) {
   return state.siswa.filter((s) => kelasIdPada(state, s, tahun) === kelasId).sort(bandingSiswa);
+}
+
+/** Kelas yang diampu guru BK. Kosong = semua kelas (belum dibatasi). */
+export function kelasDiampuGuru(state) {
+  const daftar = Array.isArray(state.kelas) ? state.kelas.slice() : [];
+  const pilih = Array.isArray(state.guru?.kelasDiampu)
+    ? state.guru.kelasDiampu.map(String).filter(Boolean)
+    : [];
+  if (!pilih.length) return daftar.sort(bandingKelas);
+  const set = new Set(pilih);
+  return daftar.filter((k) => set.has(String(k.id))).sort(bandingKelas);
 }
 
 export function kelasTerpakai(state) {
@@ -651,18 +688,52 @@ export function parseCsv(text) {
 }
 
 function normHeader(h) {
-  return String(h || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return String(h || "")
+    .replace(/^\ufeff/, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[._/]+/g, " ")
+    .replace(/\s+/g, " ");
 }
 
 function mapHeaders(headers) {
   const idx = {};
+  // Cocokkan alias terpanjang dulu supaya "nisn" menang dari "nis"
+  const pasangan = [];
+  for (const [key, aliases] of Object.entries(HEADER_ALIAS)) {
+    for (const alias of aliases) pasangan.push({ key, alias });
+  }
+  pasangan.sort((a, b) => b.alias.length - a.alias.length);
   headers.forEach((h, i) => {
     const n = normHeader(h);
-    for (const [key, aliases] of Object.entries(HEADER_ALIAS)) {
-      if (aliases.includes(n) && idx[key] == null) idx[key] = i;
+    if (!n) return;
+    for (const { key, alias } of pasangan) {
+      if (idx[key] != null) continue;
+      if (n === alias) {
+        idx[key] = i;
+        break;
+      }
     }
   });
   return idx;
+}
+
+/** Jika kolom NISN/NIS tertukar di Excel sekolah, betulkan otomatis. */
+function rapikanNisNisn(nisn, nis) {
+  let a = bersihNis(nisn);
+  let b = bersihNis(nis);
+  const digit = (s) => String(s || "").replace(/\D/g, "");
+  const da = digit(a);
+  const db = digit(b);
+  // NISN resmi 10 digit; NIS sekolah biasanya lebih pendek
+  if (da.length === 10 && db.length && db.length !== 10) return { nisn: da, nis: db };
+  if (db.length === 10 && da.length && da.length !== 10) return { nisn: db, nis: da };
+  if (!da && db.length === 10) return { nisn: db, nis: "" };
+  if (!db && da.length === 10) return { nisn: da, nis: "" };
+  if (!da && !db) return { nisn: "", nis: "" };
+  if (!da) return { nisn: "", nis: db };
+  if (!db) return { nisn: da.length === 10 ? da : "", nis: da.length === 10 ? "" : da };
+  return { nisn: da, nis: db };
 }
 
 function bersihTeks(v) {
@@ -695,27 +766,45 @@ function bersihNis(v) {
   return s;
 }
 
+function cariBarisJudul(matrix) {
+  const batas = Math.min(matrix.length, 12);
+  for (let i = 0; i < batas; i++) {
+    const idx = mapHeaders(matrix[i] || []);
+    if (idx.nama != null) return i;
+  }
+  return 0;
+}
+
 export function rowsToSiswa(matrix, { kelasPaksa = "" } = {}) {
   const errors = [];
   const siswa = [];
-  if (!matrix?.length) return { siswa, errors: ["Berkas kosong."] };
-  const idx = mapHeaders(matrix[0]);
+  if (!matrix?.length) return { siswa, errors: ["Berkas kosong."], kolom: {} };
+  const judul = cariBarisJudul(matrix);
+  const idx = mapHeaders(matrix[judul] || []);
   if (idx.nama == null) {
-    return { siswa, errors: ["Kolom nama tidak ditemukan. Gunakan judul kolom Nama pada baris pertama."] };
+    return {
+      siswa,
+      errors: ["Kolom nama tidak ditemukan. Gunakan judul kolom Nama pada baris pertama."],
+      kolom: idx,
+    };
   }
-  matrix.slice(1).forEach((r, n) => {
+  matrix.slice(judul + 1).forEach((r, n) => {
     const nama = bersihTeks(r[idx.nama]);
     if (!nama) return;
     const kelas = kelasPaksa || (idx.kelas != null ? normKelas(r[idx.kelas]) : "");
     if (!kelas) {
-      errors.push(`Baris ${n + 2}: ${nama} belum memiliki kelas.`);
+      errors.push(`Baris ${judul + n + 2}: ${nama} belum memiliki kelas.`);
       return;
     }
     const ambil = (key) => (idx[key] != null ? bersihTeks(r[idx[key]]) : "");
+    const id = rapikanNisNisn(
+      idx.nisn != null ? r[idx.nisn] : "",
+      idx.nis != null ? r[idx.nis] : "",
+    );
     siswa.push({
       nama,
-      nisn: bersihNis(idx.nisn != null ? r[idx.nisn] : ""),
-      nis: bersihNis(idx.nis != null ? r[idx.nis] : ""),
+      nisn: id.nisn,
+      nis: id.nis,
       jk: normJk(ambil("jk")),
       kelas,
       noAbsen: ambil("noAbsen"),
@@ -727,7 +816,16 @@ export function rowsToSiswa(matrix, { kelasPaksa = "" } = {}) {
     });
   });
   if (!siswa.length && !errors.length) errors.push("Tidak ada nama murid yang terbaca.");
-  return { siswa, errors };
+  const kurang = [];
+  if (idx.nisn == null && idx.nis == null) kurang.push("NISN/NIS");
+  if (idx.jk == null) kurang.push("Jenis Kelamin");
+  if (idx.noAbsen == null) kurang.push("No Absen");
+  if (kurang.length) {
+    errors.push(
+      `Kolom tidak dikenali: ${kurang.join(", ")}. Pastikan baris judul memakai nama kolom tersebut.`,
+    );
+  }
+  return { siswa, errors, kolom: idx };
 }
 
 function siswaBaru() {
@@ -857,6 +955,10 @@ export function tambahSiswa(state, data) {
   siswa.nis = bersihTeks(data.nis);
   siswa.noAbsen = bersihTeks(data.noAbsen);
   siswa.agama = data.agama || "";
+  siswa.tempatLahir = bersihTeks(data.tempatLahir);
+  siswa.tanggalLahir = normTanggal(data.tanggalLahir || "");
+  siswa.namaAyah = bersihTeks(data.namaAyah);
+  siswa.namaIbu = bersihTeks(data.namaIbu);
   siswa.kelasId = data.kelasId;
   state.siswa.push(siswa);
   tempatkan(state, siswa.id, data.kelasId);

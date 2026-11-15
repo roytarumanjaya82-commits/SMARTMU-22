@@ -16,7 +16,7 @@
   siswaDiKelas,
   teksCatatanGuruBK,
   usulanCatatanGuru,
-} from "./model.js?v=15";
+} from "./model.js?v=22";
 
 function garis(teks) {
   const isi = String(teks || "").trim();
@@ -34,7 +34,7 @@ function kop(sekolah) {
     <div class="kop-baris">
       <img class="logo-sekolah" src="img/logo-smpm22.png" alt="Logo SMP Muhammadiyah 22 Setiabudi Pamulang">
       <div class="kop-teks">
-        <div class="yayasan">${esc(sekolah.yayasan || "Persyarikatan Muhammadiyah")}</div>
+        <div class="yayasan">${esc(sekolah.yayasan || "PERGURUAN MUHAMMADIYAH SETIABUDI PAMULANG")}</div>
         <h1>${esc(sekolah.nama)}</h1>
         <p class="npsn">NPSN ${esc(sekolah.npsn)}</p>
         <p>${esc(sekolah.alamat)}</p>
@@ -129,10 +129,13 @@ export function htmlRaportSiswa(state, siswa, { tanggal, kelas } = {}) {
     ${judul(periode, sekolah)}
     <h3>A. Identitas Murid</h3>
     <table class="identitas">
-      <tr><th>Nama</th><td>${esc(siswa.nama)}</td><th>NISN</th><td>${esc(siswa.nisn || "—")}</td></tr>
-      <tr><th>Kelas</th><td>${esc(kelasNama || "—")}</td><th>NIS</th><td>${esc(siswa.nis || "—")}</td></tr>
-      <tr><th>Jenis kelamin</th><td>${jk}</td><th>Nomor absen</th><td>${esc(siswa.noAbsen || "—")}</td></tr>
-      <tr><th>Tempat, tanggal lahir</th><td>${esc(ttl || "—")}</td><th>Agama</th><td>${esc(siswa.agama || "—")}</td></tr>
+      <colgroup>
+        <col class="id-lbl"><col class="id-val"><col class="id-lbl"><col class="id-val">
+      </colgroup>
+      <tr><th>Nama</th><td>${esc(siswa.nama)}</td><th>NISN</th><td class="angka">${esc(siswa.nisn || "—")}</td></tr>
+      <tr><th>Kelas</th><td>${esc(kelasNama || "—")}</td><th>NIS</th><td class="angka">${esc(siswa.nis || "—")}</td></tr>
+      <tr><th>Jenis kelamin</th><td>${jk}</td><th>Nomor absen</th><td class="angka">${esc(siswa.noAbsen || "—")}</td></tr>
+      <tr><th>Tempat, tanggal lahir</th><td colspan="3">${esc(ttl || "—")}</td></tr>
       <tr><th>Nama ayah</th><td>${esc(siswa.namaAyah || "—")}</td><th>Nama ibu</th><td>${esc(siswa.namaIbu || "—")}</td></tr>
     </table>
 

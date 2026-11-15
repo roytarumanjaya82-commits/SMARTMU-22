@@ -1,4 +1,4 @@
-import { tampilan } from "./views.js?v=15";
+import { tampilan } from "./views.js?v=22";
 import {
   bandingKelas,
   buatDeskripsi,
@@ -22,6 +22,7 @@ import {
   isiCatatanGuruKosong,
   isiDeskripsiKosong,
   isiProfilDariBidang,
+  kelasDiampuGuru,
   kelasIdPada,
   kelasMasihDipakai,
   migrate,
@@ -40,7 +41,7 @@ import {
   terapkanKenaikan,
   tahunBerikutnya,
   uid,
-} from "./model.js?v=15";
+} from "./model.js?v=22";
 import {
   connectFolder,
   downloadFromDrive,
@@ -58,7 +59,7 @@ import {
   load,
   touch,
   uploadToDrive,
-} from "./store.js?v=15";
+} from "./store.js?v=22";
 
 const appEl = document.getElementById("app");
 const ui = {
@@ -99,7 +100,7 @@ function paintStatus() {
 
 function rapikanPilihan() {
   const state = getState();
-  const kelas = state.kelas.slice().sort(bandingKelas);
+  const kelas = kelasDiampuGuru(state);
   if (!kelas.some((k) => k.id === ui.kelasId)) ui.kelasId = kelas[0]?.id || "";
   const daftar = ui.kelasId ? siswaDiKelas(state, ui.kelasId) : [];
   if (!daftar.some((s) => s.id === ui.siswaId)) ui.siswaId = daftar[0]?.id || "";
@@ -314,10 +315,33 @@ async function bacaBerkas(file) {
   }
   if (!window.XLSX) throw new Error("Pustaka Excel gagal dimuat. Simpan berkas sebagai CSV lalu unggah lagi.");
   const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
-  return wb.SheetNames.map((sheet) => ({
-    sheet,
-    matrix: XLSX.utils.sheet_to_json(wb.Sheets[sheet], { header: 1, raw: false, defval: "", dateNF: "yyyy-mm-dd" }),
-  }));
+  return wb.SheetNames.map((sheet) => {
+    const rawMatrix = XLSX.utils.sheet_to_json(wb.Sheets[sheet], {
+      header: 1,
+      raw: true,
+      defval: "",
+      blankrows: false,
+    });
+    // raw:true agar angka NISN/absen tidak hilang; lalu dinormalisasi ke teks
+    const matrix = rawMatrix.map((row) =>
+      (row || []).map((cell) => {
+        if (cell == null || cell === "") return "";
+        if (cell instanceof Date && !Number.isNaN(cell.getTime())) {
+          const y = cell.getFullYear();
+          const m = String(cell.getMonth() + 1).padStart(2, "0");
+          const d = String(cell.getDate()).padStart(2, "0");
+          return `${y}-${m}-${d}`;
+        }
+        if (typeof cell === "number" && Number.isFinite(cell)) {
+          if (Number.isInteger(cell)) return String(cell);
+          const bulat = Math.round(cell * 1000) / 1000;
+          return String(bulat);
+        }
+        return String(cell).trim();
+      }),
+    );
+    return { sheet, matrix };
+  });
 }
 
 async function prosesImpor(file) {
@@ -502,8 +526,37 @@ async function simpanLayanan() {
   toast("Layanan tersimpan.");
 }
 
+function pastikanKelasTerpilih() {
+  const daftar = kelasDiampuGuru(getState());
+  if (!daftar.length) {
+    ui.kelasId = "";
+    ui.siswaId = "";
+    return;
+  }
+  if (!daftar.some((k) => k.id === ui.kelasId)) {
+    ui.kelasId = daftar[0].id;
+    ui.siswaId = "";
+  }
+}
+
 async function jalankan(act, btn) {
   const state = getState();
+  if (act === "diampu-semua") {
+    state.guru.kelasDiampu = state.kelas.map((k) => String(k.id));
+    pastikanKelasTerpilih();
+    touch();
+    render();
+    toast(`${state.guru.kelasDiampu.length} kelas dipilih sebagai kelas diampu.`);
+    return;
+  }
+  if (act === "diampu-kosong") {
+    state.guru.kelasDiampu = [];
+    pastikanKelasTerpilih();
+    touch();
+    render();
+    toast("Pilihan kelas diampu dikosongkan. Semua kelas tampil kembali.");
+    return;
+  }
   if (act === "sambung-folder") {
     const hasil = await connectFolder();
     await setelahRemote(hasil.remote, "folder Google Drive");
@@ -887,6 +940,16 @@ function onChange(e) {
     const id = el.dataset.dim;
     if (el.checked && !ui.draftLayanan.dimensi.includes(id)) ui.draftLayanan.dimensi.push(id);
     if (!el.checked) ui.draftLayanan.dimensi = ui.draftLayanan.dimensi.filter((x) => x !== id);
+    return;
+  }
+  if (el.dataset.diampu) {
+    const st = getState();
+    const id = String(el.dataset.diampu);
+    if (!Array.isArray(st.guru.kelasDiampu)) st.guru.kelasDiampu = [];
+    if (el.checked && !st.guru.kelasDiampu.includes(id)) st.guru.kelasDiampu.push(id);
+    if (!el.checked) st.guru.kelasDiampu = st.guru.kelasDiampu.filter((x) => x !== id);
+    pastikanKelasTerpilih();
+    touch();
     return;
   }
   if (el.dataset.pick && ui.draftLayanan) {
